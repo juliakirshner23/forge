@@ -2,9 +2,9 @@
 // FORGE · Main app entry
 // =========================================================
 
-import * as db from './db.js';
-import { importBundledHevyBackup } from './import.js';
-import { downloadBackup, restoreFromBackupJson } from './export.js';
+import * as db from './db.js?v=2';
+import { importBundledHevyBackup } from './import.js?v=2';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=2';
 
 // -------- Service worker: NONE for now --------
 // Earlier versions registered a caching SW that made updates painful.
@@ -14,8 +14,12 @@ import { downloadBackup, restoreFromBackupJson } from './export.js';
 
 // -------- App boot --------
 
+const APP_VERSION = '0.1.2';
+
 async function boot() {
   try {
+    console.log('FORGE boot · version', APP_VERSION);
+    document.getElementById('topbar-meta').textContent = 'v' + APP_VERSION;
     await db.openDb();
     await ensureSeedData();
     await renderStatus();
@@ -280,7 +284,7 @@ async function onFileChosen(e) {
           } else {
             // Assume Hevy format
             await db.clearAll();
-            const { importHevyJson } = await import('./import.js');
+            const { importHevyJson } = await import('./import.js?v=2');
             summary = await importHevyJson(json);
           }
           await renderStatus();
