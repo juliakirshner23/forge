@@ -307,3 +307,243 @@ input { font-family: inherit; }
 .cat-core     { background: #7c2d12;        color: #fdba74; }
 .cat-mobility { background: var(--border);  color: var(--body); }
 .cat-rehab    { background: var(--purple);  color: #c4b5fd; }
+
+/* =========================================================
+   TAG PILLS  ·  focus tags on routines
+   ========================================================= */
+.tag-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tag {
+  font-size: 8px; font-weight: 900; letter-spacing: 1px;
+  padding: 3px 6px;
+  display: inline-block;
+}
+.tag-push,    .tag-pull, .tag-upper, .tag-legs { background: var(--amber-lo); color: var(--amber-hi); }
+.tag-core     { background: #7c2d12; color: #fdba74; }
+.tag-rehab    { background: var(--purple); color: #c4b5fd; }
+.tag-cardio   { background: var(--blue); color: var(--blue-hi); }
+.tag-recovery { background: var(--border); color: var(--body); }
+.tag-neutral  { background: var(--border); color: var(--body); }
+
+/* =========================================================
+   CATEGORY BADGE  ·  small colored square with letter
+   ========================================================= */
+.cat {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  font-size: 11px; font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   TODAY CARD  ·  home screen
+   ========================================================= */
+.today-card {
+  display: block;
+  background: var(--bg-card);
+  border: 1px solid var(--amber);
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+}
+.today-card:active { transform: scale(0.99); }
+.today-rest { border-color: var(--border); }
+.today-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 3px; color: var(--amber);
+  margin-bottom: 8px;
+}
+.today-rest .today-label { color: var(--muted-2); }
+.today-name {
+  font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: var(--fg);
+  margin-bottom: 10px;
+}
+.today-sub {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--body);
+  margin-top: 8px;
+}
+.today-meta {
+  margin-top: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2);
+}
+.today-cta {
+  position: absolute; top: 20px; right: 20px;
+  font-size: 12px; font-weight: 900; letter-spacing: 2px; color: var(--amber);
+}
+
+/* =========================================================
+   STAT STRIP  ·  compact 3-across stats on home
+   ========================================================= */
+.stat-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.stat-mini {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.stat-mini-label {
+  font-size: 9px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2);
+}
+.stat-mini-value {
+  font-size: 20px; font-weight: 900; color: var(--fg); line-height: 1;
+}
+.stat-mini-sub {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+}
+
+/* =========================================================
+   COUNTDOWN CARDS
+   ========================================================= */
+.countdown-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.countdown-card {
+  background: var(--bg-card);
+  border: 1px solid var(--amber);
+  padding: 14px;
+}
+.countdown-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--amber-hi);
+  margin-bottom: 6px;
+}
+.countdown-days {
+  font-size: 22px; font-weight: 900; color: var(--fg); letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.countdown-sub {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+}
+
+/* =========================================================
+   DAY CARDS  ·  plan screen
+   ========================================================= */
+.day-list { display: flex; flex-direction: column; gap: 4px; }
+.day-card {
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  min-height: 76px;
+}
+.day-today { border-color: var(--amber); background: var(--bg-elev); }
+.day-rest { opacity: 0.6; }
+.day-col {
+  width: 76px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.day-name {
+  font-size: 14px; font-weight: 900; letter-spacing: 3px; color: var(--body);
+}
+.day-today .day-name { color: var(--amber); }
+.day-tag {
+  font-size: 8px; font-weight: 900; letter-spacing: 2px; color: var(--amber-hi);
+  background: var(--amber-lo); padding: 2px 5px;
+  align-self: flex-start;
+}
+.day-body {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.day-empty {
+  font-size: 12px; font-weight: 900; letter-spacing: 3px; color: var(--muted);
+}
+.day-routine-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.day-routine-link:active { opacity: 0.7; }
+.day-routine-name {
+  font-size: 13px; font-weight: 900; color: var(--fg);
+}
+.day-tag-row { margin-top: 4px; }
+.day-routine-meta {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+  margin-top: 4px;
+}
+
+/* =========================================================
+   NAV ROWS  ·  linked list items
+   ========================================================= */
+.nav-row {
+  display: flex; align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+  gap: 12px;
+  min-height: 56px;
+}
+.nav-row:active { transform: scale(0.99); }
+.nav-row-main { flex: 1; min-width: 0; }
+.nav-row-title { font-size: 13px; font-weight: 900; color: var(--fg); }
+.nav-row-sub { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2); margin-top: 4px; }
+.nav-row-arrow { font-size: 20px; font-weight: 900; color: var(--muted); }
+
+/* =========================================================
+   EXERCISE ROWS  ·  routine detail + library
+   ========================================================= */
+.exercise-list { display: flex; flex-direction: column; }
+.exercise-row {
+  display: flex; align-items: center;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-soft);
+  padding: 12px 14px;
+  gap: 12px;
+  min-height: 60px;
+}
+.exercise-row:first-child { border-top: 1px solid var(--border); }
+.exercise-row:last-child { border-bottom: 1px solid var(--border); }
+.exercise-num {
+  font-size: 11px; font-weight: 900; color: var(--muted);
+  width: 20px; text-align: right;
+  flex-shrink: 0;
+}
+.exercise-main { flex: 1; min-width: 0; }
+.exercise-name { font-size: 13px; font-weight: 900; color: var(--fg); }
+.exercise-meta { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2); margin-top: 3px; }
+.exercise-flag { font-size: 16px; color: var(--red); }
+.inline-badge {
+  display: inline-block;
+  font-size: 8px; font-weight: 900; letter-spacing: 1px;
+  padding: 2px 5px;
+  background: var(--amber-lo); color: var(--amber-hi);
+  margin-left: 6px; vertical-align: middle;
+}
+
+/* =========================================================
+   EMPTY / LOADING STATES
+   ========================================================= */
+.empty-note {
+  padding: 24px;
+  text-align: center;
+  font-size: 11px; font-weight: 900; letter-spacing: 3px; color: var(--muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.loading-screen {
+  padding: 80px 20px;
+  text-align: center;
+  font-size: 11px; font-weight: 900; letter-spacing: 3px; color: var(--muted);
+}
+
+/* =========================================================
+   MISC  ·  crumbs
+   ========================================================= */
+.crumb { color: var(--amber); text-decoration: none; }
+.crumb:active { opacity: 0.7; }
+code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(--bg-elev); padding: 2px 6px; }
+
+/* =========================================================
+   TABBAR  ·  active tab styling refresh
+   ========================================================= */
+.tab { text-decoration: none; }
+.tab-active { color: var(--amber); }
+.tab:not(.tab-active) { color: var(--muted); }

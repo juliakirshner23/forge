@@ -5,7 +5,7 @@
 // This is the only way data leaves the device.
 // =========================================================
 
-import * as db from './db.js?v=3';
+import * as db from './db.js?v=4';
 
 const APP_VERSION = '0.1.0';
 const BACKUP_FORMAT_VERSION = 1;

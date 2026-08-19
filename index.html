@@ -16,102 +16,28 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=3">
+<link rel="stylesheet" href="css/app.css?v=5">
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-inner">
     <span class="brand">FORGE</span>
-    <span class="topbar-meta" id="topbar-meta">v0.1.0</span>
+    <span class="topbar-meta" id="topbar-meta">v0.2.0</span>
   </div>
 </header>
 
-<main id="app">
-
-  <section class="hero">
-    <div class="eyebrow">PHASE 1 · FOUNDATION · v0.1.3</div>
-    <h1>YOUR VAULT</h1>
-    <p class="hero-sub">Everything below lives on this device. Nothing syncs. Back it up regularly.</p>
-    <p class="hero-meta" id="hero-meta"></p>
-  </section>
-
-  <section class="section">
-    <div class="section-label">DATA STATUS  ·  TAP A CARD TO INSPECT</div>
-    <div id="status-grid" class="stat-grid">
-      <div class="stat-card" data-loading>
-        <span class="stat-label">LOADING</span>
-        <span class="stat-value">--</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-label">SETTINGS  ·  CONSTRAINTS</div>
-    <div id="settings-preview" class="settings-list">
-      <div class="settings-row"><span class="settings-key">LOADING</span></div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-label">BACKUP &amp; RESTORE</div>
-    <div class="action-stack">
-      <button class="btn btn-primary" id="btn-export">
-        <span class="btn-title">EXPORT BACKUP</span>
-        <span class="btn-sub">DOWNLOAD JSON · SAVE TO DRIVE / iCLOUD</span>
-      </button>
-      <button class="btn btn-outline" id="btn-import">
-        <span class="btn-title">IMPORT BACKUP</span>
-        <span class="btn-sub">RESTORE FROM JSON FILE</span>
-      </button>
-      <input type="file" id="file-input" accept="application/json,.json" hidden>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-label">ADVANCED</div>
-    <div class="action-stack">
-      <button class="btn btn-danger" id="btn-clear">
-        <span class="btn-title">CLEAR ALL DATA</span>
-        <span class="btn-sub">WIPE THIS DEVICE · IRREVERSIBLE</span>
-      </button>
-      <button class="btn btn-outline" id="btn-reimport">
-        <span class="btn-title">RE-IMPORT BUNDLED HEVY DATA</span>
-        <span class="btn-sub">RESTORE FROM APP'S SEED FILE</span>
-      </button>
-    </div>
-  </section>
-
-  <section class="section footer-note">
-    <p>Storage: <span id="storage-info">--</span></p>
-    <p>Next: workout loop lands in Phase 2.</p>
-  </section>
-
-</main>
+<main id="app-content"><div class="loading-screen">LOADING...</div></main>
 
 <nav class="tabbar">
-  <div class="tab tab-active">
-    <span class="tab-icon">■</span>
-    <span class="tab-label">VAULT</span>
-  </div>
-  <div class="tab tab-disabled">
-    <span class="tab-icon">◇</span>
-    <span class="tab-label">PLAN</span>
-  </div>
-  <div class="tab tab-disabled">
-    <span class="tab-icon">◇</span>
-    <span class="tab-label">LOG</span>
-  </div>
-  <div class="tab tab-disabled">
-    <span class="tab-icon">◇</span>
-    <span class="tab-label">STATS</span>
-  </div>
-  <div class="tab tab-disabled">
-    <span class="tab-icon">◇</span>
-    <span class="tab-label">ME</span>
-  </div>
+  <a href="#/home"  class="tab" data-route="/home"><span class="tab-icon">▤</span><span class="tab-label">HOME</span></a>
+  <a href="#/plan"  class="tab" data-route="/plan"><span class="tab-icon">◆</span><span class="tab-label">PLAN</span></a>
+  <a href="#/log"   class="tab" data-route="/log"><span class="tab-icon">▶</span><span class="tab-label">LOG</span></a>
+  <a href="#/stats" class="tab" data-route="/stats"><span class="tab-icon">▲</span><span class="tab-label">STATS</span></a>
+  <a href="#/me"    class="tab" data-route="/me"><span class="tab-icon">●</span><span class="tab-label">ME</span></a>
 </nav>
 
+<input type="file" id="file-input" accept="application/json,.json" hidden>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div id="modal-scrim" class="modal-scrim" hidden>
@@ -128,15 +54,13 @@
 <div id="inspector-scrim" class="modal-scrim" hidden>
   <div class="modal modal-tall">
     <div class="modal-title" id="inspector-title">INSPECT</div>
-    <div class="modal-body inspector-body" id="inspector-body">
-      <div class="inspector-empty">Nothing to show.</div>
-    </div>
+    <div class="modal-body inspector-body" id="inspector-body"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="inspector-close">CLOSE</button>
     </div>
   </div>
 </div>
 
-<script type="module" src="js/app.js?v=3"></script>
+<script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>
