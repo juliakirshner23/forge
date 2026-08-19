@@ -1,58 +1,26 @@
 // =========================================================
-// FORGE · Service Worker
+// FORGE · Service Worker (self-destruct)
 // =========================================================
-// Cache-first for the app shell. Network-first for data files.
-// Bump CACHE_VERSION whenever you deploy new HTML/CSS/JS.
+// Phase 1 doesn't need offline caching, and the earlier SW's
+// aggressive caching was serving stale JS. This SW installs,
+// clears every cache, unregisters itself, and reloads open
+// tabs so the app runs from network again.
+//
+// Offline support will come back in a later phase with a
+// smarter cache strategy (network-first for JS).
 // =========================================================
 
-const CACHE_VERSION = 'forge-v0.1.1';
-const APP_SHELL = [
-  './',
-  './index.html',
-  './manifest.webmanifest',
-  './css/app.css',
-  './js/app.js',
-  './js/db.js',
-  './js/import.js',
-  './js/export.js',
-  './data/hevy-backup.json',
-  './icons/icon.svg',
-];
-
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL))
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))
-      )
-    )
-  );
-  self.clients.claim();
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((n) => caches.delete(n)));
+    await self.registration.unregister();
+    const clients = await self.clients.matchAll({ type: 'window' });
+    for (const client of clients) client.navigate(client.url);
+  })());
 });
 
-self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-  // Only handle same-origin GETs
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request).then((res) => {
-        // Cache successful same-origin responses opportunistically
-        if (res && res.status === 200 && res.type === 'basic') {
-          const clone = res.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(e.request, clone));
-        }
-        return res;
-      });
-    })
-  );
-});

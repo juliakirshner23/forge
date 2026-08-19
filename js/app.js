@@ -6,15 +6,11 @@ import * as db from './db.js';
 import { importBundledHevyBackup } from './import.js';
 import { downloadBackup, restoreFromBackupJson } from './export.js';
 
-// -------- Service worker registration (best-effort) --------
-
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {
-      // Not fatal — app works fine online
-    });
-  });
-}
+// -------- Service worker: NONE for now --------
+// Earlier versions registered a caching SW that made updates painful.
+// The current sw.js is a self-destruct that clears itself; if it's
+// still installed on this device, its next activation will clean up.
+// Offline caching returns in a later phase.
 
 // -------- App boot --------
 
