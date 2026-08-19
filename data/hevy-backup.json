@@ -1,0 +1,436 @@
+{
+  "export_metadata": {
+    "exported_at": "2026-08-19",
+    "source": "Hevy API via Hevy MCP",
+    "user": "Julia Kirshner",
+    "weight_unit_note": "All weights stored in kg. Multiply by 2.20462 to convert to lb."
+  },
+  "folders": [
+    {
+      "id": 3165551,
+      "title": "Leg Rehab"
+    },
+    {
+      "id": 3165862,
+      "title": "Weekly Program"
+    }
+  ],
+  "custom_exercises": [
+    {
+      "id": "62c266d7-a76e-4cfd-b678-71b385869e36",
+      "title": "Straight Leg Raise",
+      "note": "PT rehab exercise"
+    },
+    {
+      "id": "c1cc2161-8175-4bed-8f28-5cc31d918514",
+      "title": "Hamstring Bridge On Ball",
+      "note": "PT rehab exercise"
+    },
+    {
+      "id": "40e03575-d0c2-43ba-be60-31351a4f4dab",
+      "title": "Side Lying Hip Abduction",
+      "note": "PT rehab exercise"
+    },
+    {
+      "id": "66a27149-a9c0-444d-9de2-703aef96af79",
+      "title": "Long Arc Quad",
+      "note": "PT rehab exercise, seated"
+    },
+    {
+      "id": "e88aff54-6e78-4308-996e-cef6219d505d",
+      "title": "Partial Physio Ball Wall Squat",
+      "note": "PT rehab exercise, currently NOT in use (leg constraints)"
+    },
+    {
+      "id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10",
+      "title": "IYT",
+      "note": "Shoulder mobility"
+    },
+    {
+      "id": "3565e82b-0b60-42b2-9de2-413a2b2cf7a9",
+      "title": "Squat to Press",
+      "note": "Currently NOT in use (leg constraints)"
+    }
+  ],
+  "confirmed_exercise_templates": {
+    "3303376C": "Elliptical Trainer",
+    "D8F7F851": "Cycling (stationary bike)",
+    "243710DE": "Treadmill (Incline Walk)",
+    "7FD2EC3E": "Recumbent Bike - DO NOT USE (mobile rendering bug)",
+    "43573BB8": "Air Bike",
+    "3601968B": "Bench Press (Dumbbell)",
+    "878CD1D0": "Shoulder Press (Dumbbell)",
+    "39C99849": "Incline Push Ups",
+    "21310F5F": "Triceps Extension (Cable)",
+    "422B08F1": "Lateral Raise (Dumbbell)",
+    "3765684D": "Triceps Extension (Dumbbell)",
+    "12017185": "Chest Fly (Dumbbell)",
+    "A69FF221": "Arnold Press (Dumbbell)",
+    "7E3BC8B6": "Hammer Curl (Dumbbell)",
+    "37FCC2BB": "Bicep Curl (Dumbbell)",
+    "F1E57334": "Dumbbell Row",
+    "6A6C31A5": "Lat Pulldown (Cable)",
+    "0393F233": "Seated Cable Row - V Grip (Cable)",
+    "B9380898": "Dead Hang",
+    "EAC7D9C5": "Chest Press (Band)",
+    "062AB91A": "Seated Calf Raise",
+    "75A4F6C4": "Leg Extension (Machine)",
+    "B8127AD1": "Lying Leg Curl (Machine)",
+    "8BEBFED6": "Hip Adduction (Machine)",
+    "F4B4C6EE": "Hip Abduction (Machine)",
+    "2B4B7310": "Romanian Deadlift (Barbell)",
+    "3D0C7C75": "Goblet Squat",
+    "B537D09F": "Lunge (Dumbbell)",
+    "5F4E6DD3": "Deadlift (Dumbbell)",
+    "C7973E0E": "Leg Press (Machine)",
+    "A127DA73": "Kettlebell Goblet Squat",
+    "F8A0FCCA": "Kettlebell Swing",
+    "CBC0D834": "Single Leg Glute Bridge",
+    "CC016611": "Clamshell",
+    "9694DA61": "Squat (Bodyweight)",
+    "5E1A7777": "Lunge",
+    "B74A95BB": "Kneeling Push Up",
+    "392887AA": "Push Up",
+    "09C9F635": "Lying Leg Raise",
+    "D8911FC4": "Dead Bug",
+    "C6C9B8A0": "Plank",
+    "E3EDA509": "Side Plank",
+    "A41C7261": "Bicycle Crunch",
+    "BB83BDDE": "Russian Twist (Bodyweight)",
+    "7952B5CD": "Reverse Crunch",
+    "567FB505": "Heel Taps",
+    "08590920": "Hanging Knee Raise"
+  },
+  "routines": [
+    {
+      "id": "76d16cf6-5388-41e7-8e2c-3ad86242291d",
+      "title": "Mon: Push + Core",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "20-30 min moderate steady state. Resistance 4-6, talk-test pace.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "3601968B", "title": "Bench Press (Dumbbell)", "notes": "Chest Press", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}]},
+        {"template_id": "878CD1D0", "title": "Shoulder Press (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}]},
+        {"template_id": "39C99849", "title": "Incline Push Ups", "notes": "Push-up progression: start high incline, lower as tolerated. Advance phase when 3x12 clean.", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}]},
+        {"template_id": "21310F5F", "title": "Triceps Extension (Cable)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}]},
+        {"template_id": "422B08F1", "title": "Lateral Raise (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}]},
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "D8911FC4", "title": "Dead Bug", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "A41C7261", "title": "Bicycle Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "BB83BDDE", "title": "Russian Twist (Bodyweight)", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "7952B5CD", "title": "Reverse Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "ceb73ce8-14e9-4b42-ba30-666a40866585",
+      "title": "Tue: Legs + Core",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "25 min moderate steady state.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "62c266d7-a76e-4cfd-b678-71b385869e36", "title": "Straight Leg Raise", "notes": "2 second hold at top", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "c1cc2161-8175-4bed-8f28-5cc31d918514", "title": "Hamstring Bridge On Ball", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CC016611", "title": "Clamshell", "notes": "With exercise band", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "40e03575-d0c2-43ba-be60-31351a4f4dab", "title": "Side Lying Hip Abduction", "notes": "3 second hold at top", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "D8911FC4", "title": "Dead Bug", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "A41C7261", "title": "Bicycle Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]}
+      ]
+    },
+    {
+      "id": "15ae29fa-5245-4bad-a82d-13067847af5d",
+      "title": "Wed: Pull + Core",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "20-30 min moderate steady state.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "B9380898", "title": "Dead Hang", "notes": "Target 30s+ per hold", "rest_seconds": 90, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]},
+        {"template_id": "6A6C31A5", "title": "Lat Pulldown (Cable)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}, {"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}, {"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}]},
+        {"template_id": "F1E57334", "title": "Dumbbell Row", "notes": "Bent Over One Arm Row - alternate arms", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}]},
+        {"template_id": "37FCC2BB", "title": "Bicep Curl (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}]},
+        {"template_id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10", "title": "IYT", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "D8911FC4", "title": "Dead Bug", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "A41C7261", "title": "Bicycle Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "BB83BDDE", "title": "Russian Twist (Bodyweight)", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "7952B5CD", "title": "Reverse Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "bfaedc7e-b021-43ab-87b3-d41644fd8570",
+      "title": "Thu: Leg Rehab Home",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "20-30 min moderate steady state.", "rest_seconds": 60, "sets": [{"type": "normal", "distance_meters": 966, "duration_seconds": 1620}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "62c266d7-a76e-4cfd-b678-71b385869e36", "title": "Straight Leg Raise", "notes": "2 second hold at top", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CBC0D834", "title": "Single Leg Glute Bridge", "notes": "Single Leg Bridges", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CC016611", "title": "Clamshell", "notes": "With exercise band", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "40e03575-d0c2-43ba-be60-31351a4f4dab", "title": "Side Lying Hip Abduction", "notes": "3 second hold at top", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "66a27149-a9c0-444d-9de2-703aef96af79", "title": "Long Arc Quad", "notes": "Seated. Replaces wall squat.", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "c1cc2161-8175-4bed-8f28-5cc31d918514", "title": "Hamstring Bridge On Ball", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "03b37778-0f8b-49b8-a050-38f5a4446e59",
+      "title": "Fri: Upper + Core",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "25 min moderate steady state.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "12017185", "title": "Chest Fly (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}]},
+        {"template_id": "A69FF221", "title": "Arnold Press (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 4.5359237, "weight_lb": 10, "reps": 10}, {"type": "normal", "weight_kg": 4.5359237, "weight_lb": 10, "reps": 10}, {"type": "normal", "weight_kg": 4.5359237, "weight_lb": 10, "reps": 10}, {"type": "normal", "weight_kg": 4.5359237, "weight_lb": 10, "reps": 10}]},
+        {"template_id": "F1E57334", "title": "Dumbbell Row", "notes": "Bent Over One Arm Row - alternate arms", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}]},
+        {"template_id": "7E3BC8B6", "title": "Hammer Curl (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}]},
+        {"template_id": "7952B5CD", "title": "Reverse Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "BB83BDDE", "title": "Russian Twist (Bodyweight)", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]}
+      ]
+    },
+    {
+      "id": "e149a4f0-3b3b-410f-91dd-dbbac55ebd24",
+      "title": "Sat: Recovery + Home",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "25 min easy pace.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 1500}]},
+        {"template_id": "62c266d7-a76e-4cfd-b678-71b385869e36", "title": "Straight Leg Raise", "notes": "2 second hold at top", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CBC0D834", "title": "Single Leg Glute Bridge", "notes": "Single Leg Bridges", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CC016611", "title": "Clamshell", "notes": "With exercise band", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "40e03575-d0c2-43ba-be60-31351a4f4dab", "title": "Side Lying Hip Abduction", "notes": "3 second hold at top", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "66a27149-a9c0-444d-9de2-703aef96af79", "title": "Long Arc Quad", "notes": "Seated. Replaces wall squat.", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "c1cc2161-8175-4bed-8f28-5cc31d918514", "title": "Hamstring Bridge On Ball", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "39C99849", "title": "Incline Push Ups", "notes": "Push-up progression: advance phase when 3x12 clean.", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}]},
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "D8911FC4", "title": "Dead Bug", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "A41C7261", "title": "Bicycle Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "BB83BDDE", "title": "Russian Twist (Bodyweight)", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "7952B5CD", "title": "Reverse Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "f5d5a6c8-9a75-434c-9852-43519653d534",
+      "title": "Sun: Long Cardio",
+      "folder": "Weekly Program",
+      "folder_id": 3165862,
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "notes": "45 min steady state.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 2700}]},
+        {"template_id": "D8F7F851", "title": "Cycling", "notes": "Bike. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 2700}]},
+        {"template_id": "243710DE", "title": "Treadmill", "notes": "Incline walk. Alternative to elliptical. Same duration.", "rest_seconds": 60, "sets": [{"type": "normal", "duration_seconds": 2700}]}
+      ]
+    },
+    {
+      "id": "e59fb843-0b4d-404a-ac19-094d091b4bc5",
+      "title": "Leg Rehab - At Gym",
+      "folder": "Leg Rehab",
+      "folder_id": 3165551,
+      "status": "ARCHIVED - not in current weekly program (leg injury constraints)",
+      "exercises": [
+        {"template_id": "062AB91A", "title": "Seated Calf Raise", "notes": "Seated Heel Raise", "rest_seconds": 30, "sets": [{"type": "normal", "weight_kg": 12.700601464197913, "weight_lb": 28, "reps": 10}, {"type": "normal", "weight_kg": 12.700601464197913, "weight_lb": 28, "reps": 10}, {"type": "normal", "weight_kg": 12.700601464197913, "weight_lb": 28, "reps": 10}]},
+        {"template_id": "75A4F6C4", "title": "Leg Extension (Machine)", "notes": "Single leg", "rest_seconds": 45, "sets": [{"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15}, {"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15}, {"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15}]},
+        {"template_id": "B8127AD1", "title": "Lying Leg Curl (Machine)", "notes": "Single leg", "rest_seconds": 45, "sets": [{"type": "normal", "weight_kg": 9.071858188712795, "weight_lb": 20}, {"type": "normal", "weight_kg": 9.071858188712795, "weight_lb": 20}, {"type": "normal", "weight_kg": 9.071858188712795, "weight_lb": 20}]},
+        {"template_id": "8BEBFED6", "title": "Hip Adduction (Machine)", "rest_seconds": 45, "sets": [{"type": "normal", "weight_kg": 18.14371637742559, "weight_lb": 40, "reps": 10}, {"type": "normal", "weight_kg": 18.14371637742559, "weight_lb": 40, "reps": 10}, {"type": "normal", "weight_kg": 18.14371637742559, "weight_lb": 40, "reps": 10}]},
+        {"template_id": "2B4B7310", "title": "Romanian Deadlift (Barbell)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 13.607787283069193, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.607787283069193, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.607787283069193, "weight_lb": 30, "reps": 10}]},
+        {"template_id": "3D0C7C75", "title": "Goblet Squat", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.8038936415345965, "weight_lb": 15, "reps": 10}]}
+      ]
+    },
+    {
+      "id": "1d50c83f-eeac-4c52-88ac-a30f64a12a9f",
+      "title": "Leg Rehab - At Home",
+      "folder": "Leg Rehab",
+      "folder_id": 3165551,
+      "status": "Approved home rehab exercise set",
+      "exercises": [
+        {"template_id": "62c266d7-a76e-4cfd-b678-71b385869e36", "title": "Straight Leg Raise", "notes": "2 second hold at top", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CBC0D834", "title": "Single Leg Glute Bridge", "notes": "Single Leg Bridges", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "CC016611", "title": "Clamshell", "notes": "With exercise band", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "40e03575-d0c2-43ba-be60-31351a4f4dab", "title": "Side Lying Hip Abduction", "notes": "3 second hold at top", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "e88aff54-6e78-4308-996e-cef6219d505d", "title": "Partial Physio Ball Wall Squat", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "c1cc2161-8175-4bed-8f28-5cc31d918514", "title": "Hamstring Bridge On Ball", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "0b82887a-d3ff-4c35-bde0-faeae2f1ad14",
+      "title": "Pull",
+      "folder": null,
+      "status": "Legacy standalone routine (superseded by Wed: Pull + Core)",
+      "exercises": [
+        {"template_id": "B9380898", "title": "Dead Hang", "notes": "Target 30s+ per hold", "rest_seconds": 90, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]},
+        {"template_id": "6A6C31A5", "title": "Lat Pulldown (Cable)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}, {"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}, {"type": "normal", "weight_kg": 31.7515659, "weight_lb": 70, "reps": 10}]},
+        {"template_id": "F1E57334", "title": "Dumbbell Row", "notes": "Bent Over One Arm Row - alternate arms", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}, {"type": "normal", "weight_kg": 13.6077711, "weight_lb": 30, "reps": 10}]},
+        {"template_id": "37FCC2BB", "title": "Bicep Curl (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 12}]},
+        {"template_id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10", "title": "IYT", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "ba83bffa-7811-417a-89c1-2cdcbdb0c910",
+      "title": "Push",
+      "folder": null,
+      "status": "Legacy standalone routine (superseded by Mon: Push + Core)",
+      "exercises": [
+        {"template_id": "3601968B", "title": "Bench Press (Dumbbell)", "notes": "Chest Press Dumbbell", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 10}]},
+        {"template_id": "878CD1D0", "title": "Shoulder Press (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}, {"type": "normal", "weight_kg": 6.80388555, "weight_lb": 15, "reps": 10}]},
+        {"template_id": "39C99849", "title": "Incline Push Ups", "notes": "Push-up progression: start high incline (bar chest-height), lower as tolerated. Advance phase when 3x12 clean.", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}, {"type": "normal", "reps": 8}]},
+        {"template_id": "21310F5F", "title": "Triceps Extension (Cable)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}, {"type": "normal", "weight_kg": 9.0718474, "weight_lb": 20, "reps": 12}]},
+        {"template_id": "422B08F1", "title": "Lateral Raise (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}, {"type": "normal", "weight_kg": 3.62873896, "weight_lb": 8, "reps": 12}]}
+      ]
+    },
+    {
+      "id": "97469235-47ca-416a-bc1c-f1eb915ad8ba",
+      "title": "Cardio",
+      "folder": null,
+      "status": "Legacy blank template",
+      "exercises": [
+        {"template_id": "3303376C", "title": "Elliptical Trainer", "rest_seconds": 0, "sets": [{"type": "normal", "distance_meters": 0, "duration_seconds": 0}]}
+      ]
+    },
+    {
+      "id": "a0df6a1e-5e80-482c-ac0c-a6664b6485f5",
+      "title": "Challenge - Daily",
+      "folder": null,
+      "status": "Legacy imported from Strong app (contains banned exercises for leg injury)",
+      "exercises": [
+        {"template_id": "9694DA61", "title": "Squat (Bodyweight)", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "392887AA", "title": "Push Up", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "C6C9B8A0", "title": "Plank", "rest_seconds": 30, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]}
+      ]
+    },
+    {
+      "id": "bc9c510b-2052-4fd8-a2c2-245585469486",
+      "title": "Circuit",
+      "folder": null,
+      "status": "Legacy imported from Strong app (contains banned exercises for leg injury)",
+      "exercises": [
+        {"template_id": "9694DA61", "title": "Squat (Bodyweight)", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "B74A95BB", "title": "Kneeling Push Up", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "5E1A7777", "title": "Lunge", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "C6C9B8A0", "title": "Plank", "rest_seconds": 30, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]},
+        {"template_id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10", "title": "IYT", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "567FB505", "title": "Heel Taps", "rest_seconds": 30, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "1d06726e-3687-4a0f-abf9-6ae459d03468",
+      "title": "Core",
+      "folder": null,
+      "status": "Legacy imported from Strong app (contains planks - banned for leg injury)",
+      "exercises": [
+        {"template_id": "09C9F635", "title": "Lying Leg Raise", "notes": "Flat Leg Raise", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "D8911FC4", "title": "Dead Bug", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "C6C9B8A0", "title": "Plank", "rest_seconds": 45, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]},
+        {"template_id": "E3EDA509", "title": "Side Plank", "rest_seconds": 45, "sets": [{"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}, {"type": "normal", "duration_seconds": 30}]},
+        {"template_id": "A41C7261", "title": "Bicycle Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "BB83BDDE", "title": "Russian Twist (Bodyweight)", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}, {"type": "normal", "reps": 20}]},
+        {"template_id": "7952B5CD", "title": "Reverse Crunch", "rest_seconds": 45, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "f14967ea-4497-4202-84fe-e876d28a0197",
+      "title": "Whole Body",
+      "folder": null,
+      "status": "Legacy imported from Strong app (contains banned exercises for leg injury)",
+      "exercises": [
+        {"template_id": "B537D09F", "title": "Lunge (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "C7973E0E", "title": "Leg Press (Machine)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "0393F233", "title": "Seated Cable Row - V Grip (Cable)", "notes": "Seated Row Cable", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "3565e82b-0b60-42b2-9de2-413a2b2cf7a9", "title": "Squat to Press", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "B8127AD1", "title": "Lying Leg Curl (Machine)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]},
+        {"template_id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10", "title": "IYT", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "75A4F6C4", "title": "Leg Extension (Machine)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]}
+      ]
+    },
+    {
+      "id": "52adfad2-ae6c-48cc-bcbd-13d859449356",
+      "title": "Upper Body",
+      "folder": null,
+      "status": "Legacy imported from Strong app",
+      "exercises": [
+        {"template_id": "08590920", "title": "Hanging Knee Raise", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 10}]},
+        {"template_id": "EAC7D9C5", "title": "Chest Press (Band)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]},
+        {"template_id": "878CD1D0", "title": "Shoulder Press (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "F1E57334", "title": "Dumbbell Row", "notes": "Bent Over One Arm Row - alternate arms", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "37FCC2BB", "title": "Bicep Curl (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]},
+        {"template_id": "3765684D", "title": "Triceps Extension (Dumbbell)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]},
+        {"template_id": "6A6C31A5", "title": "Lat Pulldown (Cable)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "f27c8d15-fee3-44fa-bdbf-4e1f765a8b10", "title": "IYT", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]}
+      ]
+    },
+    {
+      "id": "bed6b462-0978-433a-8364-3400a1b53ebb",
+      "title": "Lower Body",
+      "folder": null,
+      "status": "Legacy imported from Strong app (contains banned exercises for leg injury)",
+      "exercises": [
+        {"template_id": "B537D09F", "title": "Lunge (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "5F4E6DD3", "title": "Deadlift (Dumbbell)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "F8A0FCCA", "title": "Kettlebell Swing", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 15}, {"type": "normal", "reps": 15}, {"type": "normal", "reps": 15}]},
+        {"template_id": "A127DA73", "title": "Kettlebell Goblet Squat", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "2B4B7310", "title": "Romanian Deadlift (Barbell)", "rest_seconds": 90, "sets": [{"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}, {"type": "normal", "reps": 10}]},
+        {"template_id": "F4B4C6EE", "title": "Hip Abduction (Machine)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]},
+        {"template_id": "8BEBFED6", "title": "Hip Adduction (Machine)", "rest_seconds": 60, "sets": [{"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}, {"type": "normal", "reps": 12}]}
+      ]
+    }
+  ],
+  "body_measurements": [
+    {"date": "2026-07-18", "weight_kg": 120.83700736799999, "weight_lb": 266.4},
+    {"date": "2026-07-04", "weight_kg": 120.65557042, "weight_lb": 266.0},
+    {"date": "2026-05-23", "weight_kg": 119.385511784, "weight_lb": 263.2},
+    {"date": "2026-05-19", "weight_kg": 119.65766720600001, "weight_lb": 263.8},
+    {"date": "2026-05-18", "weight_kg": 120.92772584200002, "weight_lb": 266.6},
+    {"date": "2026-05-08", "weight_kg": 120.20197805000001, "weight_lb": 265.0},
+    {"date": "2026-04-22", "weight_kg": 117.48042383, "weight_lb": 259.0},
+    {"date": "2026-04-21", "weight_kg": 117.48042383, "weight_lb": 259.0},
+    {"date": "2026-04-20", "weight_kg": 117.9340162, "weight_lb": 260.0},
+    {"date": "2026-04-19", "weight_kg": 118.38760857000001, "weight_lb": 261.0},
+    {"date": "2026-04-18", "weight_kg": 119.29479331, "weight_lb": 263.0},
+    {"date": "2026-04-01", "weight_kg": 119.52173163629108, "weight_lb": 263.5},
+    {"date": "2026-03-24", "weight_kg": 117.4805635438307, "weight_lb": 259.0},
+    {"date": "2026-03-23", "weight_kg": 117.843297726, "weight_lb": 259.8},
+    {"date": "2026-03-22", "weight_kg": 117.9340162, "weight_lb": 260.0},
+    {"date": "2026-03-17", "weight_kg": 118.47832704400001, "weight_lb": 261.2},
+    {"date": "2026-03-16", "weight_kg": 118.84120094000001, "weight_lb": 262.0},
+    {"date": "2026-03-14", "weight_kg": 119.385511784, "weight_lb": 263.2},
+    {"date": "2026-03-13", "weight_kg": 119.65766720600001, "weight_lb": 263.8},
+    {"date": "2026-03-12", "weight_kg": 119.65766720600001, "weight_lb": 263.8},
+    {"date": "2026-03-10", "weight_kg": 120.47413347200002, "weight_lb": 265.6},
+    {"date": "2026-03-09", "weight_kg": 120.92772584200002, "weight_lb": 266.6},
+    {"date": "2026-03-02", "weight_kg": 119.839104154, "weight_lb": 264.2},
+    {"date": "2026-03-01", "weight_kg": 120.92772584200002, "weight_lb": 266.6},
+    {"date": "2026-02-27", "weight_kg": 118.931919414, "weight_lb": 262.2},
+    {"date": "2026-02-19", "weight_kg": 118.38760857000001, "weight_lb": 261.0},
+    {"date": "2026-02-18", "weight_kg": 118.38760857000001, "weight_lb": 261.0},
+    {"date": "2026-02-17", "weight_kg": 119.476230258, "weight_lb": 263.4},
+    {"date": "2026-02-16", "weight_kg": 119.74838568000001, "weight_lb": 264.0},
+    {"date": "2026-02-12", "weight_kg": 118.84120094000001, "weight_lb": 262.0},
+    {"date": "2026-02-02", "weight_kg": 115.93820977200001, "weight_lb": 255.6},
+    {"date": "2026-01-27", "weight_kg": 116.39180214200002, "weight_lb": 256.6},
+    {"date": "2026-01-20", "weight_kg": 116.93611298600001, "weight_lb": 257.8},
+    {"date": "2026-01-18", "weight_kg": 116.93611298600001, "weight_lb": 257.8},
+    {"date": "2025-11-26", "weight_kg": 113.3980925, "weight_lb": 250.0},
+    {"date": "2025-11-21", "weight_kg": 114.75886961, "weight_lb": 253.0},
+    {"date": "2025-08-26", "weight_kg": 101.876846302, "weight_lb": 224.6}
+  ],
+  "completed_workouts": [
+    {
+      "id": "64438769-509e-47ef-b849-96015ca44cc9",
+      "title": "Thu: Leg Rehab Home",
+      "start_time": "2026-07-17T11:48:54+00:00",
+      "end_time": "2026-07-17T12:15:58+00:00",
+      "duration_minutes": 27.07,
+      "exercise_count": 1,
+      "set_count": 1
+    }
+  ]
+}

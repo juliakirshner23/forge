@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FORGE">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="FORGE — your personal strength & recovery tracker.">
+<title>FORGE</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="brand">FORGE</span>
+    <span class="topbar-meta" id="topbar-meta">v0.1.0</span>
+  </div>
+</header>
+
+<main id="app">
+
+  <section class="hero">
+    <div class="eyebrow">PHASE 1 · FOUNDATION</div>
+    <h1>YOUR VAULT</h1>
+    <p class="hero-sub">Everything below lives on this device. Nothing syncs. Back it up regularly.</p>
+  </section>
+
+  <section class="section">
+    <div class="section-label">DATA STATUS</div>
+    <div id="status-grid" class="stat-grid">
+      <div class="stat-card" data-loading>
+        <span class="stat-label">LOADING</span>
+        <span class="stat-value">--</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">BACKUP &amp; RESTORE</div>
+    <div class="action-stack">
+      <button class="btn btn-primary" id="btn-export">
+        <span class="btn-title">EXPORT BACKUP</span>
+        <span class="btn-sub">DOWNLOAD JSON · SAVE TO DRIVE / iCLOUD</span>
+      </button>
+      <button class="btn btn-outline" id="btn-import">
+        <span class="btn-title">IMPORT BACKUP</span>
+        <span class="btn-sub">RESTORE FROM JSON FILE</span>
+      </button>
+      <input type="file" id="file-input" accept="application/json,.json" hidden>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">ADVANCED</div>
+    <div class="action-stack">
+      <button class="btn btn-danger" id="btn-clear">
+        <span class="btn-title">CLEAR ALL DATA</span>
+        <span class="btn-sub">WIPE THIS DEVICE · IRREVERSIBLE</span>
+      </button>
+      <button class="btn btn-outline" id="btn-reimport">
+        <span class="btn-title">RE-IMPORT BUNDLED HEVY DATA</span>
+        <span class="btn-sub">RESTORE FROM APP'S SEED FILE</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="section footer-note">
+    <p>Storage: <span id="storage-info">--</span></p>
+    <p>Next: workout loop lands in Phase 2.</p>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <div class="tab tab-active">
+    <span class="tab-icon">■</span>
+    <span class="tab-label">VAULT</span>
+  </div>
+  <div class="tab tab-disabled">
+    <span class="tab-icon">◇</span>
+    <span class="tab-label">PLAN</span>
+  </div>
+  <div class="tab tab-disabled">
+    <span class="tab-icon">◇</span>
+    <span class="tab-label">LOG</span>
+  </div>
+  <div class="tab tab-disabled">
+    <span class="tab-icon">◇</span>
+    <span class="tab-label">STATS</span>
+  </div>
+  <div class="tab tab-disabled">
+    <span class="tab-icon">◇</span>
+    <span class="tab-label">ME</span>
+  </div>
+</nav>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="modal-scrim" class="modal-scrim" hidden>
+  <div class="modal">
+    <div class="modal-title" id="modal-title">CONFIRM</div>
+    <div class="modal-body" id="modal-body">Are you sure?</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modal-cancel">CANCEL</button>
+      <button class="btn btn-danger" id="modal-confirm">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
