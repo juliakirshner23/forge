@@ -33,12 +33,19 @@
   </section>
 
   <section class="section">
-    <div class="section-label">DATA STATUS</div>
+    <div class="section-label">DATA STATUS  ·  TAP A CARD TO INSPECT</div>
     <div id="status-grid" class="stat-grid">
       <div class="stat-card" data-loading>
         <span class="stat-label">LOADING</span>
         <span class="stat-value">--</span>
       </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-label">SETTINGS  ·  CONSTRAINTS</div>
+    <div id="settings-preview" class="settings-list">
+      <div class="settings-row"><span class="settings-key">LOADING</span></div>
     </div>
   </section>
 
@@ -110,6 +117,18 @@
     <div class="modal-actions">
       <button class="btn btn-outline" id="modal-cancel">CANCEL</button>
       <button class="btn btn-danger" id="modal-confirm">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<div id="inspector-scrim" class="modal-scrim" hidden>
+  <div class="modal modal-tall">
+    <div class="modal-title" id="inspector-title">INSPECT</div>
+    <div class="modal-body inspector-body" id="inspector-body">
+      <div class="inspector-empty">Nothing to show.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="inspector-close">CLOSE</button>
     </div>
   </div>
 </div>

@@ -5,7 +5,7 @@
 // Bump CACHE_VERSION whenever you deploy new HTML/CSS/JS.
 // =========================================================
 
-const CACHE_VERSION = 'forge-v0.1.0';
+const CACHE_VERSION = 'forge-v0.1.1';
 const APP_SHELL = [
   './',
   './index.html',

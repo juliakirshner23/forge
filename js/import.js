@@ -247,38 +247,49 @@ function normalizeGoals(json) {
     });
   }
 
-  // Derive from user_context if present (backup file may include this)
+  // Seed the four known goals (Inca Trail, weight, push-ups, PT clearance)
+  // unless the backup already provided one of the same type/id.
   const ctx = json.user_context || {};
-  if (ctx.inca_trail_date && !out.find((g) => g.type === 'event' && g.title.includes('Inca'))) {
-    out.push({
+  const seed = [
+    {
       id: 'gl_inca_trail',
       type: 'event',
       title: 'Inca Trail',
-      targetDate: ctx.inca_trail_date,
+      targetDate: ctx.inca_trail_date || '2027-04-19',
       metadata: { description: "Dead Woman's Pass · ~2,000 steps" },
-      createdAt: nowIso(),
-    });
-  }
-  if (ctx.weight_goal_lb && ctx.weight_goal_date) {
-    out.push({
+    },
+    {
       id: 'gl_weight',
       type: 'weight',
       title: 'Goal Weight',
-      targetValue: ctx.weight_goal_lb,
-      targetDate: ctx.weight_goal_date,
-      startValue: ctx.weight_start_lb || null,
-      createdAt: nowIso(),
-    });
-  }
-  if (ctx.pushup_goal) {
-    out.push({
+      targetValue: ctx.weight_goal_lb || 170,
+      targetDate: ctx.weight_goal_date || '2027-03-30',
+      startValue: ctx.weight_start_lb || 266,
+      metadata: { units: 'lb' },
+    },
+    {
       id: 'gl_pushup',
       type: 'pushup',
-      title: ctx.pushup_goal.title || '3 Full Push-Ups',
-      targetDate: ctx.pushup_goal.target_date || null,
-      metadata: ctx.pushup_goal,
-      createdAt: nowIso(),
-    });
+      title: '3 Full Push-Ups',
+      targetDate: (ctx.pushup_goal && ctx.pushup_goal.target_date) || '2027-01-31',
+      metadata: {
+        phases: ['wall', 'high incline', 'mid incline', 'low incline', 'full'],
+        currentPhaseIndex: 2,
+      },
+    },
+    {
+      id: 'gl_pt_clearance',
+      type: 'clearance',
+      title: 'PT Clearance · Unrestricted Lower Body',
+      targetDate: (ctx.constraints && ctx.constraints.clearanceExpected) || '2027-09-01',
+      metadata: { note: 'Full lower-body training resumes at this date' },
+    },
+  ];
+
+  for (const s of seed) {
+    if (!out.find((g) => g.id === s.id)) {
+      out.push({ ...s, createdAt: nowIso() });
+    }
   }
 
   return out;
