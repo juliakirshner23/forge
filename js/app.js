@@ -2,9 +2,9 @@
 // FORGE · Main app entry
 // =========================================================
 
-import * as db from './db.js?v=2';
-import { importBundledHevyBackup } from './import.js?v=2';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=2';
+import * as db from './db.js?v=3';
+import { importBundledHevyBackup } from './import.js?v=3';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=3';
 
 // -------- Service worker: NONE for now --------
 // Earlier versions registered a caching SW that made updates painful.
@@ -14,7 +14,7 @@ import { downloadBackup, restoreFromBackupJson } from './export.js?v=2';
 
 // -------- App boot --------
 
-const APP_VERSION = '0.1.2';
+const APP_VERSION = '0.1.3';
 
 async function boot() {
   try {
@@ -86,11 +86,15 @@ async function renderStatus() {
     grid.appendChild(el);
   }
 
-  // Topbar meta line
-  const topbarMeta = document.getElementById('topbar-meta');
-  if (lastImport) {
-    const days = Math.floor((Date.now() - lastImport.getTime()) / 86400000);
-    topbarMeta.textContent = `LAST IMPORT · ${days}D AGO`;
+  // Topbar meta stays as the version. Last-import info moves to hero.
+  const heroMeta = document.getElementById('hero-meta');
+  if (heroMeta) {
+    if (lastImport) {
+      const days = Math.floor((Date.now() - lastImport.getTime()) / 86400000);
+      heroMeta.textContent = `LAST IMPORT · ${days}D AGO`;
+    } else {
+      heroMeta.textContent = 'NO IMPORT YET';
+    }
   }
 }
 
@@ -284,7 +288,7 @@ async function onFileChosen(e) {
           } else {
             // Assume Hevy format
             await db.clearAll();
-            const { importHevyJson } = await import('./import.js?v=2');
+            const { importHevyJson } = await import('./import.js?v=3');
             summary = await importHevyJson(json);
           }
           await renderStatus();
