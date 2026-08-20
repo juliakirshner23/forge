@@ -16,14 +16,17 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=7">
+<link rel="stylesheet" href="css/app.css?v=8">
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-inner">
     <span class="brand">FORGE</span>
-    <span class="topbar-meta" id="topbar-meta">v0.3.0</span>
+    <a href="#/me" class="topbar-me" id="topbar-me">
+      <span class="topbar-me-label">ME</span>
+      <span class="topbar-meta" id="topbar-meta">v0.4.0</span>
+    </a>
   </div>
 </header>
 
@@ -33,8 +36,8 @@
   <a href="#/home"  class="tab" data-route="/home"><span class="tab-icon">▤</span><span class="tab-label">HOME</span></a>
   <a href="#/plan"  class="tab" data-route="/plan"><span class="tab-icon">◆</span><span class="tab-label">PLAN</span></a>
   <a href="#/log"   class="tab" data-route="/log"><span class="tab-icon">▶</span><span class="tab-label">LOG</span></a>
+  <a href="#/food"  class="tab" data-route="/food"><span class="tab-icon">◉</span><span class="tab-label">FOOD</span></a>
   <a href="#/stats" class="tab" data-route="/stats"><span class="tab-icon">▲</span><span class="tab-label">STATS</span></a>
-  <a href="#/me"    class="tab" data-route="/me"><span class="tab-icon">●</span><span class="tab-label">ME</span></a>
 </nav>
 
 <input type="file" id="file-input" accept="application/json,.json" hidden>
@@ -61,6 +64,6 @@
   </div>
 </div>
 
-<script type="module" src="js/app.js?v=7"></script>
+<script type="module" src="js/app.js?v=8"></script>
 </body>
 </html>

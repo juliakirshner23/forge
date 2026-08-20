@@ -1,15 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=7';
-import { importBundledHevyBackup } from './import.js?v=7';
-import { toast } from './ui.js?v=7';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=7';
-import { renderLog, renderSession } from './workout.js?v=7';
-import { renderHistory } from './history.js?v=7';
-import { renderBody } from './body.js?v=7';
-import { renderGoals } from './goals.js?v=7';
-import { renderSettings } from './settings.js?v=7';
+import * as db from './db.js?v=8';
+import { importBundledHevyBackup } from './import.js?v=8';
+import { toast } from './ui.js?v=8';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=8';
+import { renderLog, renderSession } from './workout.js?v=8';
+import { renderHistory } from './history.js?v=8';
+import { renderBody } from './body.js?v=8';
+import { renderGoals } from './goals.js?v=8';
+import { renderSettings } from './settings.js?v=8';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=8';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -26,6 +27,10 @@ const ROUTES = {
   '/stats':    renderStats,
   '/settings': renderSettings,
   '/me':       renderMe,
+  '/food':     renderFood,
+  '/food-day': renderFoodDay,
+  '/food-new': renderFoodNew,
+  '/food-edit':renderFoodEdit,
 };
 
 async function handleRoute() {
@@ -57,8 +62,10 @@ function updateActiveTab(routeKey) {
     '/home': '/home',
     '/plan': '/plan', '/routine': '/plan', '/library': '/plan', '/exercise': '/plan',
     '/log': '/log', '/session': '/log', '/history': '/log',
+    '/food': '/food', '/food-day': '/food', '/food-new': '/food', '/food-edit': '/food',
     '/stats': '/stats', '/body': '/stats',
-    '/me': '/me', '/goals': '/me', '/goal': '/me', '/settings': '/me',
+    // /me and its sub-routes have no bottom tab; ME lives in top-right of header.
+    '/me': null, '/goals': null, '/goal': null, '/settings': null,
   };
   const tabRoute = tabMap[routeKey] || routeKey;
   document.querySelectorAll('.tab').forEach((tab) => {

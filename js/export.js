@@ -5,13 +5,13 @@
 // This is the only way data leaves the device.
 // =========================================================
 
-import * as db from './db.js?v=4';
+import * as db from './db.js?v=8';
 
 const APP_VERSION = '0.1.0';
 const BACKUP_FORMAT_VERSION = 1;
 
 export async function buildBackupJson() {
-  const [exercises, routines, sessions, bodyMeasurements, dailyActivity, goals, settingsRows, metaRows] = await Promise.all([
+  const [exercises, routines, sessions, bodyMeasurements, dailyActivity, goals, settingsRows, metaRows, foods, mealLog, dailyCalorieAdjustments] = await Promise.all([
     db.getAll('exercises'),
     db.getAll('routines'),
     db.getAll('sessions'),
@@ -20,6 +20,9 @@ export async function buildBackupJson() {
     db.getAll('goals'),
     db.getAll('settings'),
     db.getAll('meta'),
+    db.getAll('foods'),
+    db.getAll('mealLog'),
+    db.getAll('dailyCalorieAdjustments'),
   ]);
 
   // Flatten settings into an object for readability
@@ -42,6 +45,9 @@ export async function buildBackupJson() {
         bodyMeasurements: bodyMeasurements.length,
         dailyActivity: dailyActivity.length,
         goals: goals.length,
+        foods: foods.length,
+        mealLog: mealLog.length,
+        dailyCalorieAdjustments: dailyCalorieAdjustments.length,
       },
     },
     exercises,
@@ -52,6 +58,9 @@ export async function buildBackupJson() {
     goals,
     settings,
     meta,
+    foods,
+    mealLog,
+    dailyCalorieAdjustments,
   };
 }
 
@@ -80,7 +89,7 @@ export async function downloadBackup() {
 // -------- Restore from user-supplied FORGE backup file --------
 
 export async function restoreFromBackupJson(json) {
-  const summary = { exercises: 0, routines: 0, sessions: 0, bodyMeasurements: 0, dailyActivity: 0, goals: 0, settings: 0 };
+  const summary = { exercises: 0, routines: 0, sessions: 0, bodyMeasurements: 0, dailyActivity: 0, goals: 0, settings: 0, foods: 0, mealLog: 0, dailyCalorieAdjustments: 0 };
 
   // Wipe everything first (restore is destructive by design)
   await db.clearAll();
@@ -91,6 +100,9 @@ export async function restoreFromBackupJson(json) {
   if (json.bodyMeasurements) { await db.putMany('bodyMeasurements', json.bodyMeasurements); summary.bodyMeasurements = json.bodyMeasurements.length; }
   if (json.dailyActivity) { await db.putMany('dailyActivity', json.dailyActivity); summary.dailyActivity = json.dailyActivity.length; }
   if (json.goals) { await db.putMany('goals', json.goals); summary.goals = json.goals.length; }
+  if (json.foods) { await db.putMany('foods', json.foods); summary.foods = json.foods.length; }
+  if (json.mealLog) { await db.putMany('mealLog', json.mealLog); summary.mealLog = json.mealLog.length; }
+  if (json.dailyCalorieAdjustments) { await db.putMany('dailyCalorieAdjustments', json.dailyCalorieAdjustments); summary.dailyCalorieAdjustments = json.dailyCalorieAdjustments.length; }
   if (json.settings) {
     for (const [key, value] of Object.entries(json.settings)) {
       await db.setSetting(key, value);

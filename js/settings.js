@@ -1,12 +1,13 @@
 // FORGE settings editor
-import * as db from './db.js?v=7';
-import { el, section, formField, formSelect, toast } from './ui.js?v=7';
+import * as db from './db.js?v=8';
+import { el, section, formField, formSelect, toast } from './ui.js?v=8';
 
 export async function renderSettings(container) {
-  const [units, stride, stepGoal, prompts, backup, profile, constraints] = await Promise.all([
+  const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal] = await Promise.all([
     db.getSetting('units'), db.getSetting('strideLengthIn'), db.getSetting('stepGoal'),
     db.getSetting('promptSensitivity'), db.getSetting('backupReminder'),
     db.getSetting('profile'), db.getSetting('constraints'),
+    db.getSetting('calorieBudget'), db.getSetting('netCalorieGoal'),
   ]);
 
   container.appendChild(el('section', { class: 'hero' }, [
@@ -53,6 +54,12 @@ export async function renderSettings(container) {
   ]));
   container.appendChild(section('PREFERENCES', prefsForm));
 
+  // Calories
+  const calForm = el('div', { class: 'form-stack' });
+  calForm.appendChild(formField('DAILY BUDGET (KCAL)', 'number', 'calorieBudget', calorieBudget ?? 2000, 'MAX FOOD CALORIES PER DAY'));
+  calForm.appendChild(formField('NET CALORIE GOAL (KCAL)', 'number', 'netCalorieGoal', netCalorieGoal ?? 1800, 'FOOD MINUS EXERCISE TARGET'));
+  container.appendChild(section('CALORIES', calForm));
+
   // Constraints
   const conForm = el('div', { class: 'form-stack' });
   conForm.appendChild(formSelect('CONSTRAINTS ACTIVE', 'conActive', String(constraints?.active ?? false), [
@@ -80,6 +87,8 @@ export async function renderSettings(container) {
       await db.setSetting('stepGoal', Number(activityForm.querySelector('[name="stepGoal"]').value) || 10000);
       await db.setSetting('promptSensitivity', prefsForm.querySelector('[name="prompts"]').value);
       await db.setSetting('backupReminder', prefsForm.querySelector('[name="backup"]').value);
+      await db.setSetting('calorieBudget', Number(calForm.querySelector('[name="calorieBudget"]').value) || 2000);
+      await db.setSetting('netCalorieGoal', Number(calForm.querySelector('[name="netCalorieGoal"]').value) || 1800);
       const conActive = conForm.querySelector('[name="conActive"]').value === 'true';
       await db.setSetting('constraints', {
         active: conActive,

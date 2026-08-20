@@ -5,7 +5,7 @@
 // data model. Handles kg → lb conversion (Hevy stores in kg).
 // =========================================================
 
-import * as db from './db.js?v=4';
+import * as db from './db.js?v=8';
 
 const KG_TO_LB = 2.20462;
 

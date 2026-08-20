@@ -7,18 +7,22 @@
 // =========================================================
 
 const DB_NAME = 'forge';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Object stores. Add new stores here + bump DB_VERSION when needed.
 export const STORES = {
-  exercises:         { keyPath: 'id' },
-  routines:          { keyPath: 'id' },
-  sessions:          { keyPath: 'id' },
-  bodyMeasurements:  { keyPath: 'id' },
-  dailyActivity:     { keyPath: 'date' }, // one entry per YYYY-MM-DD
-  goals:             { keyPath: 'id' },
-  settings:          { keyPath: 'key' },  // key/value store
-  meta:              { keyPath: 'key' },  // key/value store
+  exercises:                { keyPath: 'id' },
+  routines:                 { keyPath: 'id' },
+  sessions:                 { keyPath: 'id' },
+  bodyMeasurements:         { keyPath: 'id' },
+  dailyActivity:            { keyPath: 'date' }, // one entry per YYYY-MM-DD
+  goals:                    { keyPath: 'id' },
+  settings:                 { keyPath: 'key' },  // key/value store
+  meta:                     { keyPath: 'key' },  // key/value store
+  // Added in v2 (Phase 2d · calorie tracking)
+  foods:                    { keyPath: 'id' },   // personal food library
+  mealLog:                  { keyPath: 'id' },   // individual meal entries
+  dailyCalorieAdjustments:  { keyPath: 'date' }, // manual exercise-cal overrides per day
 };
 
 let _dbPromise = null;
