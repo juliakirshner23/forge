@@ -1,6 +1,6 @@
 // FORGE history: calendar heatmap + full session list
-import * as db from './db.js?v=8';
-import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=8';
+import * as db from './db.js?v=9';
+import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=9';
 
 export async function renderHistory(container) {
   const sessions = (await db.getAll('sessions'))

@@ -1,6 +1,6 @@
 // FORGE settings editor
-import * as db from './db.js?v=8';
-import { el, section, formField, formSelect, toast } from './ui.js?v=8';
+import * as db from './db.js?v=9';
+import { el, section, formField, formSelect, toast } from './ui.js?v=9';
 
 export async function renderSettings(container) {
   const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal] = await Promise.all([

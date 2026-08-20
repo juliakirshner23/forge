@@ -1,16 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=8';
-import { importBundledHevyBackup } from './import.js?v=8';
-import { toast } from './ui.js?v=8';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=8';
-import { renderLog, renderSession } from './workout.js?v=8';
-import { renderHistory } from './history.js?v=8';
-import { renderBody } from './body.js?v=8';
-import { renderGoals } from './goals.js?v=8';
-import { renderSettings } from './settings.js?v=8';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=8';
+import * as db from './db.js?v=9';
+import { importBundledHevyBackup } from './import.js?v=9';
+import { toast } from './ui.js?v=9';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=9';
+import { renderLog, renderSession } from './workout.js?v=9';
+import { renderHistory } from './history.js?v=9';
+import { renderBody } from './body.js?v=9';
+import { renderGoals } from './goals.js?v=9';
+import { renderSettings } from './settings.js?v=9';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=9';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.4.1';
 
 const ROUTES = {
   '/home':     renderHome,

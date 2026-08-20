@@ -1,6 +1,6 @@
 // FORGE stats: weight trend + exercise progression + PRs
-import * as db from './db.js?v=8';
-import { el, section, formatDate } from './ui.js?v=8';
+import * as db from './db.js?v=9';
+import { el, section, formatDate } from './ui.js?v=9';
 
 export async function renderStatsPage(container, params) {
   const [measurements, sessions, exercises] = await Promise.all([

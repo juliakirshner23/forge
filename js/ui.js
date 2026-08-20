@@ -2,7 +2,7 @@
 // FORGE · Shared UI helpers
 // =========================================================
 
-import * as db from './db.js?v=8';
+import * as db from './db.js?v=9';
 
 // -------- DOM builder --------
 
@@ -104,7 +104,12 @@ export function currentDayKey() {
 }
 
 export function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  // Local date, not UTC — otherwise late-evening users west of UTC get tomorrow's date.
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export function daysUntil(iso) {
@@ -132,7 +137,9 @@ export function formatMinSec(seconds) {
 
 export function formatDate(iso) {
   if (!iso) return '';
-  const d = new Date(iso);
+  // Date-only strings (YYYY-MM-DD) must be parsed as LOCAL midnight, not UTC,
+  // or west-of-UTC users see the previous day.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + 'T00:00:00') : new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
 }
 

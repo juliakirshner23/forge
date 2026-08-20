@@ -1,14 +1,14 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=8';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=8';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=8';
+import * as db from './db.js?v=9';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=9';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=9';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=8';
+} from './ui.js?v=9';
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -247,13 +247,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=8');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=9');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=8');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=9');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -304,7 +304,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=8');
+  const { startSession } = await import('./workout.js?v=9');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -617,7 +617,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=8');
+  const { renderStatsPage } = await import('./stats.js?v=9');
   return renderStatsPage(container, params);
 }
 
@@ -720,7 +720,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=8'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=9'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
