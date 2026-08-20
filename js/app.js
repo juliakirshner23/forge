@@ -1,29 +1,31 @@
-// =========================================================
-// FORGE · App entry
-// =========================================================
-// Boot + hash router. All screen rendering is in screens.js.
-// =========================================================
+// FORGE main entry: boot + hash router
+import * as db from './db.js?v=7';
+import { importBundledHevyBackup } from './import.js?v=7';
+import { toast } from './ui.js?v=7';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=7';
+import { renderLog, renderSession } from './workout.js?v=7';
+import { renderHistory } from './history.js?v=7';
+import { renderBody } from './body.js?v=7';
+import { renderGoals } from './goals.js?v=7';
+import { renderSettings } from './settings.js?v=7';
 
-import * as db from './db.js?v=5';
-import { importBundledHevyBackup } from './import.js?v=5';
-import {
-  renderHome, renderPlan, renderRoutine, renderLibrary,
-  renderLog, renderStats, renderMe,
-  toast,
-} from './screens.js?v=5';
-
-const APP_VERSION = '0.2.0';
-
-// -------- Router --------
+const APP_VERSION = '0.3.0';
 
 const ROUTES = {
-  '/home':    renderHome,
-  '/plan':    renderPlan,
-  '/routine': renderRoutine,
-  '/library': renderLibrary,
-  '/log':     renderLog,
-  '/stats':   renderStats,
-  '/me':      renderMe,
+  '/home':     renderHome,
+  '/plan':     renderPlan,
+  '/routine':  renderRoutine,
+  '/library':  renderLibrary,
+  '/exercise': renderExercise,
+  '/log':      renderLog,
+  '/session':  renderSession,
+  '/history':  renderHistory,
+  '/body':     renderBody,
+  '/goals':    renderGoals,
+  '/goal':     renderGoals,
+  '/stats':    renderStats,
+  '/settings': renderSettings,
+  '/me':       renderMe,
 };
 
 async function handleRoute() {
@@ -40,44 +42,39 @@ async function handleRoute() {
     container.innerHTML = `<section class="hero"><div class="eyebrow">404</div><h1>SCREEN NOT FOUND</h1><p class="hero-sub">No route for <code>${hash}</code>.</p></section>`;
     return;
   }
-
-  try {
-    await handler(container, params);
-  } catch (err) {
+  try { await handler(container, params); }
+  catch (err) {
     console.error('Screen error', err);
     container.innerHTML = `<section class="hero"><div class="eyebrow" style="color:#dc2626;">SCREEN ERROR</div><h1>SOMETHING BROKE</h1><p class="hero-sub">${err.message}</p></section>`;
   }
-
   updateActiveTab(routeKey);
   window.scrollTo(0, 0);
 }
 
 function updateActiveTab(routeKey) {
+  // Map sub-routes to their parent tab for highlighting
+  const tabMap = {
+    '/home': '/home',
+    '/plan': '/plan', '/routine': '/plan', '/library': '/plan', '/exercise': '/plan',
+    '/log': '/log', '/session': '/log', '/history': '/log',
+    '/stats': '/stats', '/body': '/stats',
+    '/me': '/me', '/goals': '/me', '/goal': '/me', '/settings': '/me',
+  };
+  const tabRoute = tabMap[routeKey] || routeKey;
   document.querySelectorAll('.tab').forEach((tab) => {
-    tab.classList.toggle('tab-active', tab.dataset.route === routeKey);
+    tab.classList.toggle('tab-active', tab.dataset.route === tabRoute);
   });
 }
 
-// -------- Public: refresh current route (called from screens.js after data changes) --------
-
-export function refresh() {
-  handleRoute();
-}
-
-// -------- Boot --------
+export function refresh() { handleRoute(); }
 
 async function boot() {
   try {
     console.log('FORGE boot · version', APP_VERSION);
     document.getElementById('topbar-meta').textContent = 'v' + APP_VERSION;
-
     await db.openDb();
     await ensureSeedData();
-
-    // Default route
-    if (!window.location.hash) {
-      window.location.hash = '#/home';
-    }
+    if (!window.location.hash) window.location.hash = '#/home';
     window.addEventListener('hashchange', handleRoute);
     await handleRoute();
   } catch (err) {

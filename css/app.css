@@ -64,7 +64,7 @@ input { font-family: inherit; }
   font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--muted);
 }
 
-#app {
+#app-content {
   min-height: calc(100vh - var(--topbar-h) - var(--tabbar-h));
   padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 40px);
 }
@@ -547,3 +547,307 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(-
 .tab { text-decoration: none; }
 .tab-active { color: var(--amber); }
 .tab:not(.tab-active) { color: var(--muted); }
+
+/* =========================================================
+   SEARCH INPUT
+   ========================================================= */
+.search-input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 14px 16px;
+  font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  outline: none;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+.search-input:focus { border-color: var(--amber); }
+.search-input::placeholder { color: var(--muted); }
+
+/* =========================================================
+   FILTER CHIPS
+   ========================================================= */
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.filter-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--muted-2);
+  padding: 8px 12px;
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
+  cursor: pointer;
+  min-height: 34px;
+}
+.filter-chip:active { transform: scale(0.96); }
+.filter-chip-active { border-color: var(--amber); color: var(--amber); background: var(--bg-elev); }
+.filter-chip-pt { color: var(--body); }
+.filter-chip-pt-on { background: var(--amber-lo); border-color: var(--amber); color: var(--amber-hi); }
+
+/* =========================================================
+   EXERCISE ROW LINK VARIANT
+   ========================================================= */
+.exercise-row-link {
+  text-decoration: none;
+  color: inherit;
+}
+.exercise-row-link:active { background: var(--bg-elev); }
+
+/* =========================================================
+   FORM FIELDS
+   ========================================================= */
+.form-stack {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.form-field {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.form-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2);
+}
+.form-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 12px 14px;
+  font-size: 13px; font-weight: 700;
+  outline: none;
+  font-family: inherit;
+  -webkit-appearance: none;
+  border-radius: 0;
+  width: 100%;
+}
+.form-input:focus { border-color: var(--amber); }
+.form-input::placeholder { color: var(--muted); font-weight: 600; }
+.form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.form-select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--amber) 50%), linear-gradient(135deg, var(--amber) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 40px;
+}
+
+/* =========================================================
+   FLAG CHIPS  ·  constraint flag editor
+   ========================================================= */
+.flag-chip-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.flag-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--amber-lo);
+  color: var(--amber-hi);
+  border: 1px solid var(--amber);
+  padding: 6px 4px 6px 10px;
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
+}
+.flag-chip-x {
+  background: transparent; color: var(--amber-hi);
+  border: none; padding: 0 6px;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  line-height: 1;
+}
+.flag-empty {
+  padding: 12px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2);
+}
+.flag-picker-row {
+  display: block; width: 100%;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  padding: 14px 16px;
+  font-size: 12px; font-weight: 900; letter-spacing: 1px;
+  text-align: left;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.flag-picker-row:active { border-color: var(--amber); }
+
+/* =========================================================
+   TAG VARIANTS  ·  used on exercise detail
+   ========================================================= */
+.tag-flag { background: var(--red); color: #fee2e2; }
+.tag-safe { background: #14532d; color: #86efac; }
+
+/* =========================================================
+   NOTE BLOCK  ·  freeform text display
+   ========================================================= */
+.note-block {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  font-size: 12px; font-weight: 500; color: var(--body);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* =========================================================
+   PROGRESS BAR
+   ========================================================= */
+.pbar-wrap { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.pbar-label { display: flex; justify-content: space-between; font-size: 9px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2); }
+.pbar-value { color: var(--fg); }
+.pbar { height: 6px; background: var(--bg-elev); border: 1px solid var(--border-soft); }
+.pbar-fill { height: 100%; transition: width 0.3s ease; }
+
+/* =========================================================
+   MISSION CARDS  ·  home + goals
+   ========================================================= */
+.mission-stack { display: flex; flex-direction: column; gap: 10px; }
+.mission-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px 16px;
+}
+.mission-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.mission-title { font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--amber); }
+.mission-days { font-size: 12px; font-weight: 900; letter-spacing: 2px; color: var(--body); }
+.mission-metrics { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.mission-current { font-size: 20px; font-weight: 900; color: var(--fg); }
+.mission-target { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+.mission-sub { margin-top: 8px; font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); }
+
+.push-ladder { display: flex; gap: 4px; margin: 8px 0; flex-wrap: wrap; }
+.push-rung { flex: 1; text-align: center; padding: 6px 4px; background: var(--bg-elev); border: 1px solid var(--border-soft); font-size: 8px; font-weight: 900; letter-spacing: 1px; color: var(--muted); min-width: 44px; }
+.push-rung-done { background: var(--amber-lo); color: var(--amber-hi); border-color: var(--amber); }
+.push-rung-current { background: var(--amber); color: var(--amber-deep); }
+
+/* =========================================================
+   WEEKLY ADHERENCE DOTS  ·  home
+   ========================================================= */
+.week-dots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.week-dot {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 8px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-height: 52px;
+}
+.week-dot-day { font-size: 9px; font-weight: 900; letter-spacing: 1px; color: var(--muted-2); }
+.week-dot-mark { font-size: 16px; font-weight: 900; color: var(--muted); }
+.week-dot-today { border-color: var(--amber); }
+.week-dot-done .week-dot-mark { color: var(--green); }
+.week-dot-scheduled .week-dot-mark { color: var(--amber); }
+.week-dot-missed .week-dot-mark { color: var(--red); }
+.week-dot-rest .week-dot-mark { color: var(--gray); }
+
+/* =========================================================
+   SESSION SCREEN (active workout)
+   ========================================================= */
+.session-hero { padding-bottom: 8px; }
+.session-elapsed { color: var(--amber); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-weight: 900; letter-spacing: 2px; }
+
+.jump-strip { display: flex; gap: 4px; flex-wrap: wrap; }
+.jump-chip {
+  min-width: 34px; min-height: 34px;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--body);
+  font-size: 11px; font-weight: 900; padding: 6px 8px;
+  cursor: pointer;
+}
+.jump-chip:active { transform: scale(0.95); }
+.jump-chip-current { border-color: var(--amber); color: var(--amber); background: var(--bg-elev); }
+.jump-chip-done { background: #14532d; color: #86efac; border-color: #14532d; }
+.jump-chip-skipped { opacity: 0.4; text-decoration: line-through; }
+
+.active-exercise { background: var(--bg-card); border: 1px solid var(--amber); padding: 20px; }
+.active-name { font-size: 20px; font-weight: 900; color: var(--fg); margin-bottom: 16px; }
+
+.set-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.set-cell {
+  background: var(--bg-void); border: 1px solid var(--border); padding: 12px 10px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  text-align: left; cursor: pointer; min-height: 68px;
+}
+.set-cell:active { transform: scale(0.98); }
+.set-cell-num { font-size: 9px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2); }
+.set-cell-val { font-size: 13px; font-weight: 900; color: var(--fg); }
+.set-cell-mark { position: absolute; margin-left: auto; font-size: 14px; color: var(--muted); align-self: flex-end; }
+.set-cell { position: relative; }
+.set-cell-done { background: #14532d; border-color: var(--green); }
+.set-cell-done .set-cell-val { color: #86efac; }
+.set-cell-done .set-cell-mark { color: var(--green); }
+.set-cell-done .set-cell-num { color: #86efac; }
+
+.set-actions { display: flex; gap: 6px; margin-bottom: 12px; }
+.set-btn {
+  flex: 1; background: var(--bg-elev); border: 1px solid var(--border); color: var(--body);
+  padding: 10px; font-size: 10px; font-weight: 900; letter-spacing: 1px; cursor: pointer;
+}
+.set-btn:active { transform: scale(0.98); }
+.set-btn-danger { color: var(--red); border-color: var(--red); }
+
+.exercise-nav { display: flex; gap: 6px; }
+.nav-btn {
+  flex: 1; background: var(--bg-void); border: 1px solid var(--border); color: var(--fg);
+  padding: 12px; font-size: 11px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
+}
+.nav-btn:active { transform: scale(0.98); }
+.nav-btn-skip { color: var(--amber); border-color: var(--amber-lo); }
+
+.rest-display {
+  background: var(--bg-elev); border: 2px solid var(--amber);
+  padding: 20px; text-align: center;
+}
+.rest-label { font-size: 10px; font-weight: 900; letter-spacing: 3px; color: var(--amber); margin-bottom: 8px; }
+.rest-time { font-size: 36px; font-weight: 900; color: var(--fg); font-family: ui-monospace, 'SF Mono', Menlo, monospace; margin-bottom: 12px; }
+.rest-done { border-color: var(--green); }
+.rest-done .rest-label { color: var(--green); }
+.rest-done-note { color: var(--green); font-weight: 900; letter-spacing: 2px; margin-top: 8px; }
+
+/* =========================================================
+   ROUTINE EDITOR: editable exercise rows + editable sets
+   ========================================================= */
+.edit-exercise-row {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px; margin-bottom: 8px;
+}
+.edit-ex-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.edit-ex-name { flex: 1; font-size: 13px; font-weight: 900; color: var(--fg); }
+.edit-ex-controls { display: flex; gap: 4px; }
+.edit-btn {
+  background: var(--bg-elev); border: 1px solid var(--border); color: var(--body);
+  width: 32px; height: 32px; font-size: 14px; font-weight: 900; cursor: pointer;
+}
+.edit-btn:active { transform: scale(0.95); }
+.edit-btn-danger { color: var(--red); border-color: var(--red); }
+
+.edit-sets-wrap { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.edit-set-row { display: flex; align-items: center; gap: 6px; }
+.edit-set-num { width: 24px; font-size: 10px; font-weight: 900; color: var(--muted); text-align: right; }
+.edit-set-fields { flex: 1; display: flex; align-items: center; gap: 4px; }
+.edit-set-input { padding: 8px 10px !important; font-size: 13px; width: 70px; text-align: center; }
+.edit-set-x, .edit-set-unit { font-size: 10px; font-weight: 900; color: var(--muted); }
+
+/* =========================================================
+   HEATMAP  ·  history
+   ========================================================= */
+.heatmap {
+  display: flex; gap: 3px; overflow-x: auto;
+  padding-bottom: 8px;
+}
+.heatmap-col { display: flex; flex-direction: column; gap: 3px; }
+.heatmap-cell { width: 20px; height: 20px; background: var(--bg-card); border: 1px solid var(--border-soft); }
+.heatmap-cell-header { background: transparent; border: none; font-size: 8px; font-weight: 900; color: var(--muted); text-align: center; letter-spacing: 1px; height: 14px; padding-top: 2px; }
+.heatmap-cell-label { background: transparent; border: none; font-size: 9px; font-weight: 900; color: var(--muted); text-align: center; }
+.heatmap-labels .heatmap-cell { display: flex; align-items: center; justify-content: center; }
+.heatmap-cell-future { background: transparent; border-style: dashed; opacity: 0.3; }
+.heatmap-cell-empty { background: var(--bg-card); }
+.heatmap-cell-done { background: var(--amber-lo); border-color: var(--amber-lo); }
+.heatmap-cell-medium { background: var(--amber); border-color: var(--amber); }
+.heatmap-cell-heavy { background: var(--amber-hi); border-color: var(--amber-hi); }
+
+/* =========================================================
+   CHART
+   ========================================================= */
+.chart-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 12px;
+}
+.line-chart { width: 100%; height: auto; display: block; }
+.chart-caption {
+  margin-top: 10px;
+  font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2);
+  text-align: center;
+}
