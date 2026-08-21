@@ -1,9 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 import {
-  el, section, notFound, formField, formTextarea,
+  el, section, notFound, formField, formTextarea, formSelect,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
+import { est1RM } from './progression.js?v=13';
 
 // ---------- LOG TAB (entry point) ----------
 export async function renderLog(container) {
@@ -96,6 +97,7 @@ export async function startSession(routine) {
       order: i,
       restBetweenSets: ex.restBetweenSets || null,
       supersetGroupId: ex.supersetGroupId || null,
+      pickOneGroupId: ex.pickOneGroupId || null,
       notes: '',
       skipped: false,
       sets: (ex.sets || []).map((s, si) => ({
@@ -161,6 +163,7 @@ async function renderActiveSession(container, session) {
       el('span', { text: `⏱ ` }),
       elapsedEl,
       el('span', { text: `  ·  EXERCISE ${idx + 1} OF ${totalExercises}` }),
+      el('button', { class: 'session-menu-btn', text: '☰', onclick: () => openSessionMenu(session) }),
     ]),
     el('h1', { text: session.routineName || '(session)' }),
   ]));
@@ -180,6 +183,10 @@ async function renderActiveSession(container, session) {
 
   // Bottom actions
   const bottomActions = el('div', { class: 'action-stack' }, [
+    el('button', { class: 'btn btn-outline', onclick: () => addExerciseMidSession(session) }, [
+      el('span', { class: 'btn-title', text: '+ ADD EXERCISE' }),
+      el('span', { class: 'btn-sub', text: 'INSERT ONE MORE INTO THIS SESSION' }),
+    ]),
     el('button', { class: 'btn btn-primary', onclick: () => onFinishClick(session) }, [
       el('span', { class: 'btn-title', text: 'FINISH WORKOUT →' }),
       el('span', { class: 'btn-sub', text: 'REVIEW + SAVE SESSION' }),
@@ -192,14 +199,88 @@ async function renderActiveSession(container, session) {
   container.appendChild(section('SESSION', bottomActions));
 }
 
+// Hamburger menu for the active session.
+async function openSessionMenu(session) {
+  document.getElementById('inspector-title').textContent = 'SESSION MENU';
+  const body = document.getElementById('inspector-body');
+  body.innerHTML = '';
+  const stack = el('div', { class: 'action-stack' }, [
+    el('a', { class: 'btn btn-outline', href: '#/home', onclick: () => { document.getElementById('inspector-scrim').hidden = true; } }, [
+      el('span', { class: 'btn-title', text: 'PAUSE · GO HOME' }),
+      el('span', { class: 'btn-sub', text: 'SESSION STAYS ACTIVE, RESUME LATER' }),
+    ]),
+    el('button', { class: 'btn btn-outline', onclick: () => { document.getElementById('inspector-scrim').hidden = true; addExerciseMidSession(session); } }, [
+      el('span', { class: 'btn-title', text: '+ ADD EXERCISE' }),
+      el('span', { class: 'btn-sub', text: 'INSERT INTO CURRENT SESSION' }),
+    ]),
+    el('a', { class: 'btn btn-outline', href: `#/routine/${session.routineId}`, onclick: () => { document.getElementById('inspector-scrim').hidden = true; } }, [
+      el('span', { class: 'btn-title', text: "EDIT TODAY'S ROUTINE" }),
+      el('span', { class: 'btn-sub', text: 'CHANGES APPLY TO THE ROUTINE' }),
+    ]),
+    el('button', { class: 'btn btn-danger', onclick: () => { document.getElementById('inspector-scrim').hidden = true; onAbandonClick(session); } }, [
+      el('span', { class: 'btn-title', text: 'DISCARD SESSION' }),
+      el('span', { class: 'btn-sub', text: 'DELETES WITHOUT SAVING' }),
+    ]),
+  ]);
+  body.appendChild(stack);
+  document.getElementById('inspector-scrim').hidden = false;
+}
+
+async function addExerciseMidSession(session) {
+  const [exercises, settings] = await Promise.all([db.getAll('exercises'), db.getSetting('constraints')]);
+  const activeFlags = settings?.active ? (settings.flags || []) : [];
+  const sorted = [...exercises].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  const items = sorted.map((ex) => {
+    const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
+    return {
+      label: `${(ex.category || '?').charAt(0).toUpperCase()} · ${ex.name}${flagged ? ' ⚑' : ''}`,
+      id: ex.id, ex, flagged,
+    };
+  });
+  openPicker('ADD EXERCISE TO SESSION', items, async (item) => {
+    if (item.flagged) {
+      const ok = await new Promise((res) => confirmModal(
+        'CONSTRAINT WARNING',
+        `${item.ex.name} conflicts with your active constraints. Add anyway?`,
+        () => res(true),
+      ));
+      if (!ok) return;
+    }
+    const ex = item.ex;
+    const isCardio = ex.category === 'cardio';
+    const newBlock = {
+      exerciseId: ex.id,
+      exerciseName: ex.name,
+      order: (session.exercises || []).length,
+      restBetweenSets: 60,
+      supersetGroupId: null,
+      notes: '',
+      skipped: false,
+      sets: isCardio
+        ? [{ order: 0, type: 'normal', plannedDurationSec: 1500, actualDurationSec: null, done: false }]
+        : [{ order: 0, type: 'normal', plannedReps: 10, plannedWeightLb: null, actualReps: null, actualWeightLb: null, done: false }],
+    };
+    session.exercises = [...(session.exercises || []), newBlock];
+    await db.put('sessions', session);
+    toast(`ADDED · ${ex.name}`, 'ok');
+    refresh();
+  });
+}
+
 function exerciseJumpStrip(session, currentIdx) {
   const strip = el('div', { class: 'jump-strip' });
+  const currentGroupId = (session.exercises || [])[currentIdx]?.pickOneGroupId;
   (session.exercises || []).forEach((ex, i) => {
     const doneSets = (ex.sets || []).filter((s) => s.done).length;
     const totalSets = (ex.sets || []).length;
     const isCurrent = i === currentIdx;
     const isDone = doneSets === totalSets && totalSets > 0;
-    const cls = 'jump-chip' + (isCurrent ? ' jump-chip-current' : '') + (isDone ? ' jump-chip-done' : '') + (ex.skipped ? ' jump-chip-skipped' : '');
+    const isGroupMate = currentGroupId && ex.pickOneGroupId === currentGroupId;
+    const cls = 'jump-chip'
+      + (isCurrent ? ' jump-chip-current' : '')
+      + (isDone ? ' jump-chip-done' : '')
+      + (ex.skipped ? ' jump-chip-skipped' : '')
+      + (isGroupMate && !isCurrent ? ' jump-chip-groupmate' : '');
     const chip = el('button', { class: cls, text: `${i + 1}` });
     chip.addEventListener('click', async () => {
       session.currentExerciseIdx = i;
@@ -213,6 +294,33 @@ function exerciseJumpStrip(session, currentIdx) {
 
 function renderExerciseCard(session, current, idx) {
   const wrap = el('div', { class: 'active-exercise' });
+
+  // Pick-one group indicator: names all sibling exercises in the group,
+  // with jump chips. Non-exclusive — you can log any or all of them.
+  if (current.pickOneGroupId) {
+    const siblings = (session.exercises || [])
+      .map((ex, i) => ({ ex, i }))
+      .filter(({ ex, i }) => ex.pickOneGroupId === current.pickOneGroupId && i !== idx);
+    if (siblings.length > 0) {
+      const groupBanner = el('div', { class: 'group-banner' }, [
+        el('div', { class: 'group-banner-label', text: `◇ ALTERNATIVES · GROUP ${current.pickOneGroupId.toUpperCase()}` }),
+        el('div', { class: 'group-banner-sub', text: 'LOG ANY OR ALL OF THESE. NOT MUTUALLY EXCLUSIVE.' }),
+        el('div', { class: 'group-banner-chips' },
+          siblings.map(({ ex, i }) => {
+            const doneCount = (ex.sets || []).filter((s) => s.done).length;
+            const chip = el('button', {
+              class: 'group-chip' + (doneCount > 0 ? ' group-chip-logged' : ''),
+              text: `${ex.exerciseName}${doneCount ? ` · ${doneCount}` : ''}`,
+              onclick: async () => { session.currentExerciseIdx = i; await db.put('sessions', session); refresh(); },
+            });
+            return chip;
+          })
+        ),
+      ]);
+      wrap.appendChild(groupBanner);
+    }
+  }
+
   wrap.appendChild(el('div', { class: 'active-name', text: current.exerciseName || '(unknown)' }));
 
   // Sets grid
@@ -243,15 +351,27 @@ function renderExerciseCard(session, current, idx) {
 function setCell(session, current, exIdx, set, setIdx) {
   const done = set.done;
   const isDuration = set.plannedDurationSec != null || set.actualDurationSec != null;
-  const label = isDuration
-    ? (set.actualDurationSec != null ? `${Math.round(set.actualDurationSec / 60)}m` : `${Math.round((set.plannedDurationSec || 0) / 60)}m plan`)
-    : (set.actualReps != null && set.actualWeightLb != null)
-      ? `${set.actualReps} × ${set.actualWeightLb}lb`
-      : set.actualReps != null
-        ? `${set.actualReps} reps`
-        : set.plannedReps != null
-          ? `${set.plannedReps} × ${set.plannedWeightLb ?? '—'}lb plan`
-          : 'set';
+  let label;
+  if (isDuration && set.actualDurationSec != null) {
+    // Logged cardio: show minutes plus any speed/incline/level info
+    const parts = [`${Math.round(set.actualDurationSec / 60)}m`];
+    if (set.actualSpeedMph != null)   parts.push(`${set.actualSpeedMph}mph`);
+    if (set.actualInclinePct != null) parts.push(`${set.actualInclinePct}%`);
+    if (set.actualResistance != null) parts.push(`R${set.actualResistance}`);
+    if (set.actualDistanceMi != null) parts.push(`${set.actualDistanceMi}mi`);
+    if (set.actualStepsClimbed != null) parts.push(`${set.actualStepsClimbed} steps`);
+    label = parts.join(' · ');
+  } else if (isDuration) {
+    label = `${Math.round((set.plannedDurationSec || 0) / 60)}m plan`;
+  } else if (set.actualReps != null && set.actualWeightLb != null) {
+    label = `${set.actualReps} × ${set.actualWeightLb}lb`;
+  } else if (set.actualReps != null) {
+    label = `${set.actualReps} reps`;
+  } else if (set.plannedReps != null) {
+    label = `${set.plannedReps} × ${set.plannedWeightLb ?? '—'}lb plan`;
+  } else {
+    label = 'set';
+  }
 
   const cell = el('button', { class: 'set-cell' + (done ? ' set-cell-done' : '') }, [
     el('div', { class: 'set-cell-num', text: `SET ${setIdx + 1}` }),
@@ -262,19 +382,134 @@ function setCell(session, current, exIdx, set, setIdx) {
   return cell;
 }
 
-function openSetEntry(session, current, exIdx, set, setIdx) {
-  const isDuration = set.plannedDurationSec != null;
+// Machines with dynamic intensity fields. Order matters — first two are
+// what determine whether we can auto-calc distance from speed × time.
+const CARDIO_MACHINES = {
+  elliptical: {
+    label: 'ELLIPTICAL',
+    fields: [
+      { key: 'resistance', label: 'RESISTANCE',      placeholder: 'e.g. 8',   step: '1' },
+      { key: 'speedMph',   label: 'AVG SPEED (MPH)', placeholder: 'e.g. 3.5', step: '0.1' },
+    ],
+    distanceFromSpeed: true,
+  },
+  treadmill: {
+    label: 'TREADMILL',
+    fields: [
+      { key: 'speedMph',   label: 'SPEED (MPH)',     placeholder: 'e.g. 3.0', step: '0.1' },
+      { key: 'inclinePct', label: 'INCLINE (%)',     placeholder: 'e.g. 8',   step: '0.5' },
+    ],
+    distanceFromSpeed: true,
+  },
+  stairmaster: {
+    label: 'STAIRMASTER',
+    fields: [
+      { key: 'speedMph',     label: 'LEVEL (SPEED)',  placeholder: 'e.g. 6',   step: '1' },
+      { key: 'stepsClimbed', label: 'STEPS CLIMBED',  placeholder: 'e.g. 800', step: '1' },
+    ],
+    distanceFromSpeed: false,
+  },
+  outdoor_run: {
+    label: 'OUTDOOR RUN',
+    fields: [
+      { key: 'speedMph', label: 'AVG SPEED (MPH)', placeholder: 'e.g. 5.5', step: '0.1' },
+    ],
+    distanceFromSpeed: true,
+  },
+  bike: {
+    label: 'BIKE',
+    fields: [
+      { key: 'resistance', label: 'RESISTANCE',      placeholder: 'e.g. 8',   step: '1' },
+      { key: 'speedMph',   label: 'AVG SPEED (MPH)', placeholder: 'e.g. 12',  step: '0.1' },
+    ],
+    distanceFromSpeed: true,
+  },
+  rower: {
+    label: 'ROWER',
+    fields: [
+      { key: 'speedMph', label: 'AVG SPEED (MPH)', placeholder: 'e.g. 6', step: '0.1' },
+    ],
+    distanceFromSpeed: true,
+  },
+  other: { label: 'OTHER', fields: [], distanceFromSpeed: false },
+};
+
+function machineOptions() {
+  return Object.entries(CARDIO_MACHINES).map(([value, m]) => ({ value, label: m.label }));
+}
+
+async function openSetEntry(session, current, exIdx, set, setIdx) {
   document.getElementById('inspector-title').textContent = `SET ${setIdx + 1} · ${current.exerciseName}`;
   const body = document.getElementById('inspector-body');
   body.innerHTML = '';
 
+  // Look up the library exercise to know if it's cardio and which machine.
+  const libEx = await db.get('exercises', current.exerciseId);
+  const isCardio = libEx?.category === 'cardio';
+  const isDuration = set.plannedDurationSec != null || isCardio;
+
   const form = el('div', { class: 'form-stack' });
-  if (isDuration) {
-    form.appendChild(formField('DURATION (SECONDS)', 'number', 'duration', set.actualDurationSec ?? set.plannedDurationSec ?? '', 'e.g. 1500'));
-    form.appendChild(formField('DISTANCE (MI, OPTIONAL)', 'number', 'distance', set.actualDistanceMi ?? '', 'e.g. 2.1', { step: '0.01' }));
+
+  if (isCardio) {
+    // Machine dropdown (default = actual override > library default > 'other')
+    const defaultMachine = set.actualMachine || libEx?.cardioMachine || 'other';
+    const machineSelect = document.createElement('select');
+    machineSelect.className = 'form-input form-select';
+    machineSelect.name = 'machine';
+    for (const opt of machineOptions()) {
+      const o = document.createElement('option');
+      o.value = opt.value; o.textContent = opt.label;
+      if (opt.value === defaultMachine) o.selected = true;
+      machineSelect.appendChild(o);
+    }
+    form.appendChild(el('label', { class: 'form-field' }, [
+      el('span', { class: 'form-label', text: 'MACHINE' }),
+      machineSelect,
+    ]));
+
+    // Dynamic intensity fields container — re-rendered when machine changes.
+    const intensityWrap = el('div', { class: 'form-stack' });
+    form.appendChild(intensityWrap);
+
+    function renderIntensity() {
+      intensityWrap.innerHTML = '';
+      const conf = CARDIO_MACHINES[machineSelect.value] || CARDIO_MACHINES.other;
+      for (const f of conf.fields) {
+        const currentVal = set[`actual${cap(f.key)}`] ?? '';
+        intensityWrap.appendChild(formField(f.label, 'number', f.key, currentVal, f.placeholder, { step: f.step }));
+      }
+    }
+    machineSelect.addEventListener('change', renderIntensity);
+    renderIntensity();
+
+    // Duration + Distance always present for cardio.
+    const plannedMin = set.actualDurationSec != null ? (set.actualDurationSec / 60)
+      : (set.plannedDurationSec != null ? (set.plannedDurationSec / 60) : '');
+    form.appendChild(formField('DURATION (MINUTES)', 'number', 'duration', plannedMin, 'e.g. 25', { step: '0.1' }));
+    form.appendChild(formField('DISTANCE (MI)', 'number', 'distance', set.actualDistanceMi ?? '', 'LEAVE BLANK TO AUTO-CALC FROM SPEED × TIME', { step: '0.01' }));
+  } else if (isDuration) {
+    const plannedMin = set.actualDurationSec != null ? (set.actualDurationSec / 60)
+      : (set.plannedDurationSec != null ? (set.plannedDurationSec / 60) : '');
+    form.appendChild(formField('DURATION (MINUTES)', 'number', 'duration', plannedMin, 'e.g. 25', { step: '0.1' }));
+    form.appendChild(formSelect('SET TYPE', 'setType', set.type || 'normal', SET_TYPES));
+    form.appendChild(formField('NOTES', 'text', 'setNotes', set.notes || '', 'RPE, form cue, anything'));
   } else {
     form.appendChild(formField('REPS', 'number', 'reps', set.actualReps ?? set.plannedReps ?? '', 'e.g. 10'));
     form.appendChild(formField('WEIGHT (LB)', 'number', 'weight', set.actualWeightLb ?? set.plannedWeightLb ?? '', 'e.g. 20', { step: '0.5' }));
+    form.appendChild(formSelect('SET TYPE', 'setType', set.type || 'normal', SET_TYPES));
+    form.appendChild(formField('NOTES', 'text', 'setNotes', set.notes || '', 'RPE, form cue, anything'));
+    // Live 1RM hint
+    const oneRmHint = el('div', { class: 'form-hint', text: '' });
+    form.appendChild(oneRmHint);
+    function updateHint() {
+      const r = Number(form.querySelector('[name="reps"]').value);
+      const w = Number(form.querySelector('[name="weight"]').value);
+      const est = est1RM(w, r);
+      oneRmHint.textContent = est ? `EST 1RM · ${est} LB` : '';
+    }
+    form.querySelector('[name="reps"]').addEventListener('input', updateHint);
+    form.querySelector('[name="weight"]').addEventListener('input', updateHint);
+    updateHint();
   }
 
   const logBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
@@ -282,23 +517,43 @@ function openSetEntry(session, current, exIdx, set, setIdx) {
     el('span', { class: 'btn-sub', text: 'START REST TIMER' }),
   ]);
   logBtn.addEventListener('click', async () => {
-    if (isDuration) {
+    if (isCardio) {
+      const machine = form.querySelector('[name="machine"]').value;
+      const conf = CARDIO_MACHINES[machine] || CARDIO_MACHINES.other;
+      set.actualMachine = machine;
+      for (const f of conf.fields) {
+        const raw = form.querySelector(`[name="${f.key}"]`)?.value;
+        set[`actual${cap(f.key)}`] = raw ? Number(raw) : null;
+      }
       const d = form.querySelector('[name="duration"]').value;
       const dist = form.querySelector('[name="distance"]').value;
-      set.actualDurationSec = d ? Number(d) : null;
-      set.actualDistanceMi = dist ? Number(dist) : null;
+      set.actualDurationSec = d ? Math.round(Number(d) * 60) : null;
+      // Distance: use user value if given, else auto-calc from speed × time when possible.
+      if (dist) {
+        set.actualDistanceMi = Number(dist);
+      } else if (conf.distanceFromSpeed && set.actualSpeedMph != null && set.actualDurationSec) {
+        set.actualDistanceMi = Math.round(set.actualSpeedMph * (set.actualDurationSec / 3600) * 100) / 100;
+      } else {
+        set.actualDistanceMi = null;
+      }
+    } else if (isDuration) {
+      const d = form.querySelector('[name="duration"]').value;
+      set.actualDurationSec = d ? Math.round(Number(d) * 60) : null;
+      set.type = form.querySelector('[name="setType"]')?.value || set.type || 'normal';
+      set.notes = form.querySelector('[name="setNotes"]')?.value.trim() || '';
     } else {
       const r = form.querySelector('[name="reps"]').value;
       const w = form.querySelector('[name="weight"]').value;
       set.actualReps = r ? Number(r) : null;
       set.actualWeightLb = w ? Number(w) : null;
+      set.type = form.querySelector('[name="setType"]')?.value || set.type || 'normal';
+      set.notes = form.querySelector('[name="setNotes"]')?.value.trim() || '';
     }
     set.done = true;
     set.doneAt = new Date().toISOString();
     await db.put('sessions', session);
     document.getElementById('inspector-scrim').hidden = true;
     startRestTimer(current.restBetweenSets || 60);
-    // If all sets done, auto-advance
     const allDone = (current.sets || []).every((s) => s.done);
     if (allDone && exIdx < (session.exercises || []).length - 1) {
       setTimeout(() => onNav(session, exIdx + 1), 300);
@@ -324,6 +579,15 @@ function openSetEntry(session, current, exIdx, set, setIdx) {
   body.appendChild(clearBtn);
   document.getElementById('inspector-scrim').hidden = false;
 }
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+const SET_TYPES = [
+  { value: 'normal',  label: 'NORMAL' },
+  { value: 'warmup',  label: 'WARM-UP' },
+  { value: 'failure', label: 'TO FAILURE' },
+  { value: 'dropset', label: 'DROPSET' },
+];
 
 function startRestTimer(seconds) {
   const display = document.getElementById('rest-display');
@@ -394,7 +658,7 @@ async function onFinishClick(session) {
   clearInterval(elapsedTimerId); clearInterval(restTimerId);
   window.location.hash = `#/session/${session.id}/summary`;
 }
-async function refresh() { const m = await import('./app.js?v=9'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=13'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -491,6 +755,7 @@ async function renderSessionSummary(container, session) {
       session.isActive = false;
       session.prs = prs;
       await db.put('sessions', session);
+      await maybeAdvancePushupLadder(session);
       toast(`SESSION SAVED  ·  ${totalSets} SETS`, 'ok', 3500);
       window.location.hash = '#/home';
     });
@@ -510,6 +775,14 @@ async function renderSessionSummary(container, session) {
     if (infoCard.children.length > 0) container.appendChild(section('DETAILS', infoCard));
 
     container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [
+      el('button', { class: 'btn btn-primary', onclick: () => duplicateSession(session) }, [
+        el('span', { class: 'btn-title', text: 'DUPLICATE AS NEW SESSION' }),
+        el('span', { class: 'btn-sub', text: 'START FRESH FROM THIS ROUTINE' }),
+      ]),
+      el('button', { class: 'btn btn-outline', onclick: () => openEditPastSession(session) }, [
+        el('span', { class: 'btn-title', text: 'EDIT DETAILS' }),
+        el('span', { class: 'btn-sub', text: 'CALORIES · NOTES · DATE' }),
+      ]),
       el('button', { class: 'btn btn-danger', onclick: () => {
         confirmModal('DELETE SESSION?', 'This permanently removes this session. Cannot be undone.', async () => {
           await db.remove('sessions', session.id);
@@ -570,4 +843,107 @@ async function computePRs(session) {
     }
   }
   return prs;
+}
+
+// v0.6.0 · Duplicate a past session as a fresh in-progress one.
+async function duplicateSession(session) {
+  const now = new Date().toISOString();
+  const fresh = {
+    id: uid('ses'),
+    routineId: session.routineId,
+    routineName: session.routineName,
+    routineDay: session.routineDay || null,
+    startedAt: now,
+    completedAt: null,
+    isActive: true,
+    currentExerciseIdx: 0,
+    exercises: (session.exercises || []).map((ex, i) => ({
+      exerciseId: ex.exerciseId, exerciseName: ex.exerciseName,
+      order: i, restBetweenSets: ex.restBetweenSets || null,
+      supersetGroupId: ex.supersetGroupId || null,
+      pickOneGroupId: ex.pickOneGroupId || null,
+      notes: '', skipped: false,
+      sets: (ex.sets || []).map((s, si) => ({
+        order: si, type: s.type || 'normal',
+        plannedReps: s.actualReps ?? s.plannedReps ?? null,
+        plannedWeightLb: s.actualWeightLb ?? s.plannedWeightLb ?? null,
+        plannedDurationSec: s.actualDurationSec ?? s.plannedDurationSec ?? null,
+        plannedDistanceMi: s.actualDistanceMi ?? s.plannedDistanceMi ?? null,
+        actualReps: null, actualWeightLb: null,
+        actualDurationSec: null, actualDistanceMi: null,
+        done: false, doneAt: null,
+      })),
+    })),
+    notes: '', cardioCalories: null, strengthCalories: null, prs: [],
+  };
+  await db.put('sessions', fresh);
+  toast('SESSION DUPLICATED · IN PROGRESS', 'ok');
+  window.location.hash = `#/session/${fresh.id}`;
+}
+
+// v0.6.0 · Edit calories, notes, or date on a completed session.
+function openEditPastSession(session) {
+  document.getElementById('inspector-title').textContent = 'EDIT SESSION';
+  const body = document.getElementById('inspector-body');
+  body.innerHTML = '';
+  const form = el('div', { class: 'form-stack' });
+  const dateVal = (session.completedAt || '').slice(0, 10);
+  form.appendChild(formField('DATE (YYYY-MM-DD)', 'date', 'date', dateVal, ''));
+  form.appendChild(formField('CARDIO CALORIES', 'number', 'cardioCal', session.cardioCalories ?? '', 'FROM WATCH OR ESTIMATE'));
+  form.appendChild(formField('STRENGTH CALORIES', 'number', 'strengthCal', session.strengthCalories ?? '', 'FROM WATCH OR ESTIMATE'));
+  form.appendChild(formTextarea('NOTES', 'notes', session.notes || '', ''));
+
+  const saveBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
+    el('span', { class: 'btn-title', text: 'SAVE CHANGES' }),
+  ]);
+  saveBtn.addEventListener('click', async () => {
+    const d = form.querySelector('[name="date"]').value;
+    if (d) {
+      const prevTime = (session.completedAt || '').slice(10) || 'T12:00:00.000Z';
+      session.completedAt = d + prevTime;
+    }
+    const c = form.querySelector('[name="cardioCal"]').value;
+    const s = form.querySelector('[name="strengthCal"]').value;
+    session.cardioCalories = c ? Number(c) : null;
+    session.strengthCalories = s ? Number(s) : null;
+    session.notes = form.querySelector('[name="notes"]').value.trim();
+    await db.put('sessions', session);
+    document.getElementById('inspector-scrim').hidden = true;
+    toast('SESSION UPDATED', 'ok');
+    refresh();
+  });
+  body.appendChild(form);
+  body.appendChild(saveBtn);
+  document.getElementById('inspector-scrim').hidden = false;
+}
+
+// v0.6.0 · If the last N sessions all hit target reps on push-ups, bump the goal phase.
+async function maybeAdvancePushupLadder(justSavedSession) {
+  const goal = await db.get('goals', 'gl_pushup');
+  if (!goal || !goal.metadata) return;
+  const phases = goal.metadata.phases || [];
+  const idx = goal.metadata.currentPhaseIndex ?? 0;
+  if (idx >= phases.length - 1) return;
+  // Find push-up-like exercises in this and past sessions
+  const sessions = (await db.getAll('sessions')).filter((s) => !s.isActive && s.completedAt)
+    .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+  const isPushup = (name) => /push[- ]?up/i.test(name || '');
+  // Consider last 3 sessions with any push-up work
+  let clean = 0;
+  for (const s of sessions) {
+    const ex = (s.exercises || []).find((e) => isPushup(e.exerciseName));
+    if (!ex) continue;
+    const done = (ex.sets || []).filter((st) => st.done && st.actualReps != null);
+    if (done.length === 0) continue;
+    const allHit = done.length >= 3 && done.every((st) => st.actualReps >= 12);
+    if (allHit) clean++;
+    else break;
+    if (clean >= 3) {
+      goal.metadata.currentPhaseIndex = idx + 1;
+      goal.updatedAt = new Date().toISOString();
+      await db.put('goals', goal);
+      toast(`◆ PUSH-UP LADDER · ADVANCED TO ${phases[idx + 1].toUpperCase()}`, 'ok', 4000);
+      return;
+    }
+  }
 }

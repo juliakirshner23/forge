@@ -1,10 +1,18 @@
-// FORGE stats: weight trend + exercise progression + PRs
-import * as db from './db.js?v=9';
-import { el, section, formatDate } from './ui.js?v=9';
+// FORGE stats: weight trend + exercise progression + PRs + analytics (v0.6.0)
+import * as db from './db.js?v=13';
+import { el, section, formatDate } from './ui.js?v=13';
+import { est1RM, muscleGroupVolume, cardioStrengthSplit, adherenceInWindow, volumeTrend } from './progression.js?v=13';
+
+const RANGES = [
+  { label: '30D', days: 30 },
+  { label: '90D', days: 90 },
+  { label: '1Y',  days: 365 },
+  { label: 'ALL', days: null },
+];
 
 export async function renderStatsPage(container, params) {
-  const [measurements, sessions, exercises] = await Promise.all([
-    db.getAll('bodyMeasurements'), db.getAll('sessions'), db.getAll('exercises'),
+  const [measurements, sessions, exercises, routines] = await Promise.all([
+    db.getAll('bodyMeasurements'), db.getAll('sessions'), db.getAll('exercises'), db.getAll('routines'),
   ]);
   const completedSessions = sessions.filter((s) => !s.isActive && s.completedAt);
 
@@ -13,44 +21,88 @@ export async function renderStatsPage(container, params) {
     el('h1', { text: 'PROGRESS' }),
   ]));
 
-  // Weight chart
-  const weightData = measurements
-    .filter((m) => m.weight != null)
-    .map((m) => ({ date: m.date, value: m.weight }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-  if (weightData.length >= 2) {
-    container.appendChild(section('WEIGHT (LB)', renderLineChart(weightData, { yLabel: 'LB' })));
-  } else {
-    container.appendChild(section('WEIGHT (LB)', el('div', { class: 'empty-note', text: 'NEED AT LEAST 2 WEIGHT ENTRIES' })));
+  // Adherence over 3 time windows
+  const adherenceStrip = el('div', { class: 'stat-strip' });
+  for (const win of [7, 30, 90]) {
+    const pct = adherenceInWindow(routines, completedSessions, win);
+    adherenceStrip.appendChild(el('div', { class: 'stat-mini' }, [
+      el('span', { class: 'stat-mini-label', text: `${win}D` }),
+      el('span', { class: 'stat-mini-value', text: pct != null ? `${pct}%` : '—' }),
+      el('span', { class: 'stat-mini-sub', text: 'ADHERENCE' }),
+    ]));
   }
+  container.appendChild(section('ADHERENCE', adherenceStrip));
+
+  // Cardio vs Strength time split
+  const split = cardioStrengthSplit(completedSessions, exercises, 30);
+  container.appendChild(section('CARDIO vs STRENGTH · LAST 30 DAYS',
+    renderSplitBar(split.cardioMin, split.strengthMin)));
+
+  // Muscle group balance
+  const musc = muscleGroupVolume(completedSessions, exercises, 30);
+  if (musc.size > 0) {
+    container.appendChild(section('MUSCLE / CATEGORY BALANCE · LAST 30 DAYS', renderMuscleBars(musc)));
+  }
+
+  // Body Measurements: individual chart per measurement, with range chips
+  container.appendChild(await renderBodyMeasurementCharts(measurements));
 
   // Exercise progression
   const exWithHistory = collectExerciseHistory(completedSessions, exercises);
   if (exWithHistory.length === 0) {
     container.appendChild(section('EXERCISE PROGRESSION', el('div', { class: 'empty-note', text: 'LOG A WORKOUT TO SEE PROGRESSION' })));
   } else {
-    // Picker for exercise
     let selectedId = exWithHistory[0].id;
+    let selectedRangeIdx = 1; // default 90D
     const chartWrap = el('div', {});
+    const rangeRow = el('div', { class: 'chart-range-row' });
+    RANGES.forEach((r, i) => {
+      const btn = el('button', {
+        class: 'chart-range-btn' + (i === selectedRangeIdx ? ' chart-range-btn-active' : ''),
+        text: r.label,
+        onclick: () => {
+          selectedRangeIdx = i;
+          rangeRow.querySelectorAll('.chart-range-btn').forEach((b, bi) => b.classList.toggle('chart-range-btn-active', bi === i));
+          renderExChart();
+        },
+      });
+      rangeRow.appendChild(btn);
+    });
     const picker = el('select', { class: 'form-input form-select' });
     for (const ex of exWithHistory) {
       const o = document.createElement('option');
       o.value = ex.id; o.textContent = `${ex.name} · ${ex.data.length} SESSIONS`;
       picker.appendChild(o);
     }
-    picker.addEventListener('change', () => {
-      selectedId = picker.value;
-      renderExChart();
-    });
+    picker.addEventListener('change', () => { selectedId = picker.value; renderExChart(); });
+
     function renderExChart() {
       chartWrap.innerHTML = '';
       const ex = exWithHistory.find((e) => e.id === selectedId);
       if (!ex || ex.data.length < 1) return;
-      chartWrap.appendChild(renderLineChart(ex.data, { yLabel: ex.unit || 'LB' }));
+      const days = RANGES[selectedRangeIdx].days;
+      const filtered = days ? ex.data.filter((d) => (Date.now() - new Date(d.date).getTime()) <= days * 86400000) : ex.data;
+      if (filtered.length === 0) {
+        chartWrap.appendChild(el('div', { class: 'empty-note', text: 'NO DATA IN RANGE' }));
+      } else {
+        chartWrap.appendChild(renderLineChart(filtered, { yLabel: ex.unit || 'LB' }));
+      }
+      // Est. 1RM if strength
+      if (ex.unit === 'LB' && ex.latestReps != null && ex.latestWeight != null) {
+        const est = est1RM(ex.latestWeight, ex.latestReps);
+        if (est != null) chartWrap.appendChild(el('div', { class: 'chart-caption', text: `EST 1RM · ${est} LB (FROM ${ex.latestWeight} × ${ex.latestReps})` }));
+      }
+      // Volume trend
+      const trend = volumeTrend(ex.id, completedSessions.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || '')));
+      if (trend) {
+        const arrow = trend.direction === 'up' ? '↑' : trend.direction === 'down' ? '↓' : '→';
+        chartWrap.appendChild(el('div', { class: 'chart-caption', text: `VOLUME TREND · ${arrow} ${trend.pctChange > 0 ? '+' : ''}${trend.pctChange}% (2W vs PRIOR 2W)` }));
+      }
     }
     renderExChart();
     container.appendChild(section('EXERCISE PROGRESSION', el('div', {}, [
       el('div', { class: 'form-field' }, [ el('span', { class: 'form-label', text: 'EXERCISE' }), picker ]),
+      rangeRow,
       chartWrap,
     ])));
   }
@@ -73,7 +125,7 @@ export async function renderStatsPage(container, params) {
         el('div', { class: 'exercise-num', text: '★' }),
         el('div', { class: 'exercise-main' }, [
           el('div', { class: 'exercise-name', text: pr.exerciseName }),
-          el('div', { class: 'exercise-meta', text: `${pr.type.toUpperCase()} · ${pr.value}  ·  ${formatDate(pr.date)}` }),
+          el('div', { class: 'exercise-meta', text: `${(pr.type || '').toUpperCase()} · ${pr.value}  ·  ${formatDate(pr.date)}` }),
         ]),
       ]));
     }
@@ -83,7 +135,7 @@ export async function renderStatsPage(container, params) {
 
 function collectExerciseHistory(sessions, exercises) {
   const exById = new Map(exercises.map((e) => [e.id, e]));
-  const map = new Map(); // exerciseId -> { id, name, unit, data: [{ date, value }] }
+  const map = new Map();
   for (const s of sessions) {
     for (const ex of (s.exercises || [])) {
       const doneSets = (ex.sets || []).filter((st) => st.done);
@@ -99,12 +151,122 @@ function collectExerciseHistory(sessions, exercises) {
         unit: isCardio ? 'MIN' : 'LB', data: [],
       });
       map.get(ex.exerciseId).data.push({ date: (s.completedAt || '').slice(0, 10), value: Math.round(maxVal * 10) / 10 });
+      // Track latest reps + weight for 1RM
+      if (!isCardio) {
+        const topSet = doneSets.reduce((a, b) => (b.actualWeightLb || 0) > (a.actualWeightLb || 0) ? b : a, doneSets[0]);
+        map.get(ex.exerciseId).latestReps = topSet.actualReps ?? null;
+        map.get(ex.exerciseId).latestWeight = topSet.actualWeightLb ?? null;
+      }
     }
   }
   const result = [...map.values()].filter((e) => e.data.length >= 1);
   for (const e of result) e.data.sort((a, b) => a.date.localeCompare(b.date));
   result.sort((a, b) => b.data.length - a.data.length);
   return result;
+}
+
+async function renderBodyMeasurementCharts(measurements) {
+  const wrap = el('div', {});
+  if (measurements.length < 2) {
+    wrap.appendChild(el('div', { class: 'empty-note', text: 'NEED AT LEAST 2 MEASUREMENT ENTRIES' }));
+    return section('BODY MEASUREMENTS', wrap);
+  }
+  const fields = [
+    { key: 'weight', label: 'WEIGHT', unit: 'LB' },
+    { key: 'waist',  label: 'WAIST',  unit: 'IN' },
+    { key: 'hips',   label: 'HIPS',   unit: 'IN' },
+    { key: 'chest',  label: 'CHEST',  unit: 'IN' },
+    { key: 'neck',   label: 'NECK',   unit: 'IN' },
+    { key: 'leftBicep',  label: 'L BICEP',  unit: 'IN' },
+    { key: 'rightBicep', label: 'R BICEP',  unit: 'IN' },
+    { key: 'leftThigh',  label: 'L THIGH',  unit: 'IN' },
+    { key: 'rightThigh', label: 'R THIGH',  unit: 'IN' },
+    { key: 'leftCalf',   label: 'L CALF',   unit: 'IN' },
+    { key: 'rightCalf',  label: 'R CALF',   unit: 'IN' },
+    { key: 'wrist',      label: 'WRIST',    unit: 'IN' },
+  ];
+  const available = fields.filter((f) => measurements.some((m) => m[f.key] != null));
+  if (available.length === 0) {
+    wrap.appendChild(el('div', { class: 'empty-note', text: 'NO MEASUREMENTS RECORDED' }));
+    return section('BODY MEASUREMENTS', wrap);
+  }
+  let selectedKey = available[0].key;
+  let selectedRangeIdx = 1;
+
+  const picker = el('select', { class: 'form-input form-select' });
+  for (const f of available) {
+    const o = document.createElement('option');
+    o.value = f.key; o.textContent = f.label;
+    picker.appendChild(o);
+  }
+  const rangeRow = el('div', { class: 'chart-range-row' });
+  const chartWrap = el('div', {});
+
+  function draw() {
+    chartWrap.innerHTML = '';
+    const f = available.find((x) => x.key === selectedKey);
+    const days = RANGES[selectedRangeIdx].days;
+    const data = measurements
+      .filter((m) => m[f.key] != null)
+      .filter((m) => !days || (Date.now() - new Date(m.date + 'T00:00:00').getTime()) <= days * 86400000)
+      .map((m) => ({ date: m.date, value: m[f.key] }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (data.length < 2) {
+      chartWrap.appendChild(el('div', { class: 'empty-note', text: 'NOT ENOUGH DATA IN RANGE' }));
+    } else {
+      chartWrap.appendChild(renderLineChart(data, { yLabel: f.unit }));
+    }
+  }
+  RANGES.forEach((r, i) => {
+    const btn = el('button', {
+      class: 'chart-range-btn' + (i === selectedRangeIdx ? ' chart-range-btn-active' : ''),
+      text: r.label,
+      onclick: () => {
+        selectedRangeIdx = i;
+        rangeRow.querySelectorAll('.chart-range-btn').forEach((b, bi) => b.classList.toggle('chart-range-btn-active', bi === i));
+        draw();
+      },
+    });
+    rangeRow.appendChild(btn);
+  });
+  picker.addEventListener('change', () => { selectedKey = picker.value; draw(); });
+  draw();
+  wrap.appendChild(el('div', { class: 'form-field' }, [ el('span', { class: 'form-label', text: 'MEASUREMENT' }), picker ]));
+  wrap.appendChild(rangeRow);
+  wrap.appendChild(chartWrap);
+  return section('BODY MEASUREMENTS', wrap);
+}
+
+function renderSplitBar(cardioMin, strengthMin) {
+  const total = cardioMin + strengthMin || 1;
+  const cardioPct = Math.round((cardioMin / total) * 100);
+  const strengthPct = 100 - cardioPct;
+  return el('div', { class: 'split-bar-wrap' }, [
+    el('div', { class: 'split-bar-labels' }, [
+      el('span', { class: 'split-bar-label split-bar-cardio', text: `CARDIO · ${cardioMin} MIN · ${cardioPct}%` }),
+      el('span', { class: 'split-bar-label split-bar-strength', text: `STRENGTH · ${strengthMin} MIN · ${strengthPct}%` }),
+    ]),
+    el('div', { class: 'split-bar' }, [
+      el('div', { class: 'split-bar-fill split-bar-fill-cardio', style: `width:${cardioPct}%;` }),
+    ]),
+  ]);
+}
+
+function renderMuscleBars(map) {
+  const entries = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const max = entries[0][1] || 1;
+  const wrap = el('div', { class: 'muscle-bars' });
+  for (const [muscle, vol] of entries) {
+    const pct = Math.round((vol / max) * 100);
+    wrap.appendChild(el('div', { class: 'muscle-bar-row' }, [
+      el('span', { class: 'muscle-bar-label', text: muscle.toUpperCase() }),
+      el('div', { class: 'muscle-bar' }, [
+        el('div', { class: 'muscle-bar-fill', style: `width:${pct}%;` }),
+      ]),
+      el('span', { class: 'muscle-bar-val', text: Math.round(vol) }),
+    ]));
+  }
+  return wrap;
 }
 
 function weeklyVolumeCards(sessions) {
@@ -140,7 +302,6 @@ function weeklyVolumeCards(sessions) {
   ]);
 }
 
-// Simple SVG line chart
 function renderLineChart(data, { yLabel } = {}) {
   const w = 340, h = 180, padL = 44, padR = 12, padT = 16, padB = 28;
   const values = data.map((d) => d.value);
@@ -176,7 +337,6 @@ function renderLineChart(data, { yLabel } = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'chart-wrap';
   wrap.innerHTML = svg;
-  // Add caption
   const caption = el('div', { class: 'chart-caption', text: `${data[data.length - 1].value} ${yLabel || ''}  ·  LATEST  (${data.length} POINTS)` });
   wrap.appendChild(caption);
   return wrap;

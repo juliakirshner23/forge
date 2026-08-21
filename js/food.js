@@ -6,11 +6,11 @@
 // MET × body weight × duration; can be manually overridden.
 // =========================================================
 
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 import {
   el, section, formField, formSelect,
   toast, confirmModal, uid, esc, todayIso, formatDate, progressBar, progressColor,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
 
 // ---------- Constants ----------
 
@@ -663,6 +663,6 @@ function prettyDate(iso) {
 // ---------- Refresh helper ----------
 
 async function refresh() {
-  const m = await import('./app.js?v=9');
+  const m = await import('./app.js?v=13');
   m.refresh && m.refresh();
 }

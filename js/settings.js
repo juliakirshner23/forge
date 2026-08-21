@@ -1,13 +1,14 @@
 // FORGE settings editor
-import * as db from './db.js?v=9';
-import { el, section, formField, formSelect, toast } from './ui.js?v=9';
+import * as db from './db.js?v=13';
+import { el, section, formField, formSelect, toast } from './ui.js?v=13';
 
 export async function renderSettings(container) {
-  const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal] = await Promise.all([
+  const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal, theme] = await Promise.all([
     db.getSetting('units'), db.getSetting('strideLengthIn'), db.getSetting('stepGoal'),
     db.getSetting('promptSensitivity'), db.getSetting('backupReminder'),
     db.getSetting('profile'), db.getSetting('constraints'),
     db.getSetting('calorieBudget'), db.getSetting('netCalorieGoal'),
+    db.getSetting('theme'),
   ]);
 
   container.appendChild(el('section', { class: 'hero' }, [
@@ -54,6 +55,30 @@ export async function renderSettings(container) {
   ]));
   container.appendChild(section('PREFERENCES', prefsForm));
 
+  // Appearance
+  const themeForm = el('div', { class: 'form-stack' });
+  themeForm.appendChild(formSelect('THEME', 'theme', theme || 'dark', [
+    { value: 'dark',  label: 'DARK · BLACK + AMBER (DEFAULT)' },
+    { value: 'light', label: 'LIGHT · IVORY + AMBER' },
+  ]));
+  container.appendChild(section('APPEARANCE', themeForm));
+
+  // Notifications
+  const notifForm = el('div', { class: 'form-stack' });
+  notifForm.appendChild(el('div', { class: 'form-hint', text: 'MONTHLY BACKUP REMINDER USES BROWSER NOTIFICATIONS. iOS SAFARI PWA SUPPORT IS LIMITED.' }));
+  const notifBtn = el('button', { class: 'btn btn-outline' }, [
+    el('span', { class: 'btn-title', text: 'ENABLE NOTIFICATIONS' }),
+    el('span', { class: 'btn-sub', text: 'ONE-TIME PERMISSION PROMPT' }),
+  ]);
+  notifBtn.addEventListener('click', async () => {
+    if (!('Notification' in window)) { toast('NOTIFICATIONS NOT SUPPORTED', 'error'); return; }
+    const r = await Notification.requestPermission();
+    if (r === 'granted') toast('NOTIFICATIONS ENABLED', 'ok');
+    else toast('PERMISSION ' + r.toUpperCase(), 'error');
+  });
+  notifForm.appendChild(notifBtn);
+  container.appendChild(section('NOTIFICATIONS', notifForm));
+
   // Calories
   const calForm = el('div', { class: 'form-stack' });
   calForm.appendChild(formField('DAILY BUDGET (KCAL)', 'number', 'calorieBudget', calorieBudget ?? 2000, 'MAX FOOD CALORIES PER DAY'));
@@ -89,6 +114,9 @@ export async function renderSettings(container) {
       await db.setSetting('backupReminder', prefsForm.querySelector('[name="backup"]').value);
       await db.setSetting('calorieBudget', Number(calForm.querySelector('[name="calorieBudget"]').value) || 2000);
       await db.setSetting('netCalorieGoal', Number(calForm.querySelector('[name="netCalorieGoal"]').value) || 1800);
+      const newTheme = themeForm.querySelector('[name="theme"]').value;
+      await db.setSetting('theme', newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
       const conActive = conForm.querySelector('[name="conActive"]').value === 'true';
       await db.setSetting('constraints', {
         active: conActive,

@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
   DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
 
 const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
 
@@ -132,6 +132,40 @@ function editableExerciseRow(model, ex, idx, exById, rerender) {
     ]),
   ]));
 
+  // Superset with previous exercise (except first)
+  if (idx > 0) {
+    const supRow = el('div', { class: 'form-field', style: 'margin-top: 8px;' }, [
+      el('label', { class: 'superset-toggle' }, [
+        el('input', { type: 'checkbox', checked: ex.supersetGroupId ? true : null, onchange: (e) => {
+          if (e.target.checked) {
+            const prev = model.exercises[idx - 1];
+            ex.supersetGroupId = prev.supersetGroupId || ('ss_' + Math.random().toString(36).slice(2, 8));
+            prev.supersetGroupId = ex.supersetGroupId;
+          } else {
+            ex.supersetGroupId = null;
+          }
+          rerender();
+        } }),
+        el('span', { class: 'form-label', text: '  SUPERSET WITH PREVIOUS' }),
+      ]),
+    ]);
+    row.appendChild(supRow);
+  }
+
+  // Cardio grouping label (visual, non-exclusive)
+  const isCardio = (libEx?.category === 'cardio');
+  if (isCardio) {
+    const groupInput = el('input', {
+      class: 'form-input', type: 'text', placeholder: 'e.g. CARDIO-A (LEAVE BLANK IF SOLO)',
+      value: ex.pickOneGroupId || '',
+      onchange: (e) => { ex.pickOneGroupId = e.target.value.trim() || null; },
+    });
+    row.appendChild(el('div', { class: 'form-field', style: 'margin-top: 8px;' }, [
+      el('span', { class: 'form-label', text: 'CARDIO GROUP · SAME LABEL = VISUAL ALTERNATIVES (LOG ANY OR ALL)' }),
+      groupInput,
+    ]));
+  }
+
   // Sets editor
   const setsWrap = el('div', { class: 'edit-sets-wrap' });
   (ex.sets || []).forEach((set, si) => setsWrap.appendChild(editableSetRow(ex, set, si, rerender)));
@@ -154,6 +188,47 @@ function editableExerciseRow(model, ex, idx, exById, rerender) {
   ]);
   row.appendChild(restRow);
 
+  // Exercise notes (planning)
+  const notesRow = el('div', { class: 'form-field', style: 'margin-top: 10px;' }, [
+    el('span', { class: 'form-label', text: 'EXERCISE NOTES' }),
+    el('input', {
+      class: 'form-input', type: 'text', value: ex.notes || '',
+      placeholder: 'FORM CUE OR TARGET',
+      onchange: (e) => { ex.notes = e.target.value.trim(); },
+    }),
+  ]);
+  row.appendChild(notesRow);
+
+  // Substitutes (up to 3)
+  const subsWrap = el('div', { class: 'form-field', style: 'margin-top: 10px;' });
+  subsWrap.appendChild(el('span', { class: 'form-label', text: 'SUBSTITUTES · SHOWN IN WORKOUT IF EQUIPMENT BUSY' }));
+  const subsList = el('div', { class: 'subs-list' });
+  const subIds = ex.substituteIds || [];
+  for (const sid of subIds) {
+    const s = exById.get(sid);
+    if (!s) continue;
+    subsList.appendChild(el('span', { class: 'sub-chip' }, [
+      el('span', { text: s.name }),
+      el('button', { class: 'sub-chip-x', text: '×', onclick: () => {
+        ex.substituteIds = (ex.substituteIds || []).filter((x) => x !== sid); rerender();
+      } }),
+    ]));
+  }
+  subsWrap.appendChild(subsList);
+  if (subIds.length < 3) {
+    const addSubBtn = el('button', { class: 'btn btn-outline sub-add-btn', style: 'margin-top: 6px;' }, [
+      el('span', { class: 'btn-title', text: '+ ADD SUBSTITUTE' }),
+    ]);
+    addSubBtn.addEventListener('click', () => {
+      const otherExs = [...exById.values()].filter((e) => e.id !== ex.exerciseId && e.category === (libEx?.category || 'strength'));
+      openPicker('ADD SUBSTITUTE', otherExs.map((e) => ({ label: e.name, id: e.id })), (item) => {
+        ex.substituteIds = [...(ex.substituteIds || []), item.id]; rerender();
+      });
+    });
+    subsWrap.appendChild(addSubBtn);
+  }
+  row.appendChild(subsWrap);
+
   return row;
 }
 
@@ -165,10 +240,12 @@ function editableSetRow(ex, set, si, rerender) {
   if (isDuration) {
     row.appendChild(el('div', { class: 'edit-set-fields' }, [
       el('input', {
-        class: 'form-input edit-set-input', type: 'number', value: set.durationSec || '', placeholder: 'sec',
-        onchange: (e) => { set.durationSec = e.target.value ? Number(e.target.value) : null; },
+        class: 'form-input edit-set-input', type: 'number', step: '0.1',
+        value: set.durationSec != null ? (set.durationSec / 60) : '',
+        placeholder: 'min',
+        onchange: (e) => { set.durationSec = e.target.value ? Math.round(Number(e.target.value) * 60) : null; },
       }),
-      el('span', { class: 'edit-set-unit', text: 'S' }),
+      el('span', { class: 'edit-set-unit', text: 'MIN' }),
     ]));
   } else {
     row.appendChild(el('div', { class: 'edit-set-fields' }, [

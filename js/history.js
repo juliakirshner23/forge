@@ -1,43 +1,74 @@
-// FORGE history: calendar heatmap + full session list
-import * as db from './db.js?v=9';
-import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=9';
+// FORGE history: calendar heatmap + full session list + filter (v0.6.0)
+import * as db from './db.js?v=13';
+import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=13';
 
 export async function renderHistory(container) {
-  const sessions = (await db.getAll('sessions'))
+  const [allSessions, routines] = await Promise.all([db.getAll('sessions'), db.getAll('routines')]);
+  const completed = allSessions
     .filter((s) => !s.isActive && s.completedAt)
     .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
       el('a', { href: '#/me', class: 'crumb', text: '‹ ME' }),
-      el('span', { text: `  ·  ${sessions.length} SESSIONS` }),
+      el('span', { text: `  ·  ${completed.length} SESSIONS` }),
     ]),
     el('h1', { text: 'HISTORY' }),
   ]));
 
-  // Heatmap: last 12 weeks
-  container.appendChild(section('LAST 12 WEEKS', renderHeatmap(sessions)));
-
-  if (sessions.length === 0) {
-    container.appendChild(section('SESSIONS', el('div', { class: 'empty-note', text: 'NO SESSIONS LOGGED YET' })));
-    return;
+  // Filter by routine
+  const filterState = { routineId: 'all' };
+  const filterWrap = el('div', { class: 'form-field' }, [
+    el('span', { class: 'form-label', text: 'FILTER BY ROUTINE' }),
+  ]);
+  const select = el('select', { class: 'form-input form-select' });
+  const allOpt = document.createElement('option');
+  allOpt.value = 'all'; allOpt.textContent = `ALL · ${completed.length}`;
+  select.appendChild(allOpt);
+  const routineCounts = new Map();
+  for (const s of completed) {
+    routineCounts.set(s.routineId, (routineCounts.get(s.routineId) || 0) + 1);
   }
-
-  // Group by month
-  const byMonth = new Map();
-  for (const s of sessions) {
-    const d = new Date(s.completedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase();
-    if (!byMonth.has(key)) byMonth.set(key, { label, sessions: [] });
-    byMonth.get(key).sessions.push(s);
+  for (const r of routines) {
+    const n = routineCounts.get(r.id) || 0;
+    if (n === 0) continue;
+    const o = document.createElement('option');
+    o.value = r.id; o.textContent = `${r.name} · ${n}`;
+    select.appendChild(o);
   }
+  filterWrap.appendChild(select);
+  container.appendChild(section('FILTER', filterWrap));
 
-  for (const [key, { label, sessions: monthSessions }] of byMonth) {
-    const list = el('div', {});
-    for (const s of monthSessions) list.appendChild(sessionRow(s));
-    container.appendChild(section(`${label}  ·  ${monthSessions.length}`, list));
+  // Heatmap: last 12 weeks (always full data)
+  container.appendChild(section('LAST 12 WEEKS', renderHeatmap(completed)));
+
+  const listSection = el('div', {});
+  container.appendChild(el('section', { class: 'section' }, [listSection]));
+
+  function renderList() {
+    listSection.innerHTML = '';
+    const filtered = filterState.routineId === 'all' ? completed : completed.filter((s) => s.routineId === filterState.routineId);
+    if (filtered.length === 0) {
+      listSection.appendChild(el('div', { class: 'empty-note', text: 'NO SESSIONS MATCH' }));
+      return;
+    }
+    const byMonth = new Map();
+    for (const s of filtered) {
+      const d = new Date(s.completedAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase();
+      if (!byMonth.has(key)) byMonth.set(key, { label, sessions: [] });
+      byMonth.get(key).sessions.push(s);
+    }
+    for (const [, { label, sessions: monthSessions }] of byMonth) {
+      const list = el('div', {});
+      for (const s of monthSessions) list.appendChild(sessionRow(s));
+      const wrap = section(`${label}  ·  ${monthSessions.length}`, list);
+      listSection.appendChild(wrap);
+    }
   }
+  select.addEventListener('change', () => { filterState.routineId = select.value; renderList(); });
+  renderList();
 }
 
 function sessionRow(s) {

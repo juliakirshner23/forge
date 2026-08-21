@@ -1,9 +1,9 @@
 // FORGE goals CRUD
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   progressBar, uid, toast, confirmModal, daysUntil, formatDate,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
 
 const GOAL_TYPES = [
   { value: 'event', label: 'EVENT' },

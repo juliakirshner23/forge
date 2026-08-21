@@ -1,8 +1,8 @@
 // FORGE body metrics: list, add, edit measurements
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 import {
   el, section, notFound, formField, formTextarea, uid, toast, confirmModal, todayIso, formatDate,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
 
 const FIELDS = [
   { key: 'weight', label: 'WEIGHT (LB)', unit: 'LB' },
@@ -94,6 +94,10 @@ async function renderBodyForm(container, existing) {
   for (const f of FIELDS) {
     form.appendChild(formField(f.label, 'number', f.key, model[f.key] ?? '', '', { step: '0.1' }));
   }
+  // v0.6.0 · optional daily wellbeing
+  form.appendChild(formField('SLEEP (HOURS, OPTIONAL)', 'number', 'sleepHours', model.sleepHours ?? '', 'e.g. 7.5', { step: '0.25' }));
+  form.appendChild(formField('ENERGY (1-10, OPTIONAL)', 'number', 'energy', model.energy ?? '', '1 LOW · 10 HIGH', { min: '1', max: '10' }));
+  form.appendChild(formField('MOOD (1-10, OPTIONAL)', 'number', 'mood', model.mood ?? '', '1 LOW · 10 HIGH', { min: '1', max: '10' }));
   form.appendChild(formTextarea('NOTES', 'notes', model.notes, 'How you\'re feeling, changes, etc.'));
   container.appendChild(section('MEASUREMENTS', form));
 
@@ -107,6 +111,13 @@ async function renderBodyForm(container, existing) {
       const v = form.querySelector(`[name="${f.key}"]`).value;
       updated[f.key] = v ? Number(v) : null;
     }
+    // v0.6.0 wellbeing
+    const sh = form.querySelector('[name="sleepHours"]').value;
+    const en = form.querySelector('[name="energy"]').value;
+    const md = form.querySelector('[name="mood"]').value;
+    updated.sleepHours = sh ? Number(sh) : null;
+    updated.energy = en ? Number(en) : null;
+    updated.mood = md ? Number(md) : null;
     if (!updated.date) { toast('DATE REQUIRED', 'error'); return; }
     try { await db.put('bodyMeasurements', updated); toast(isEdit ? 'SAVED' : 'ENTRY LOGGED', 'ok'); window.location.hash = '#/body'; }
     catch (err) { console.error(err); toast('SAVE FAILED · ' + err.message, 'error'); }

@@ -5,7 +5,7 @@
 // data model. Handles kg → lb conversion (Hevy stores in kg).
 // =========================================================
 
-import * as db from './db.js?v=9';
+import * as db from './db.js?v=13';
 
 const KG_TO_LB = 2.20462;
 
@@ -94,6 +94,7 @@ function normalizeExercises(json) {
       id: 'hv_' + hevyId,
       name: title,
       category: categorizeExercise(title),
+      cardioMachine: inferCardioMachine(title),
       primaryMuscles: [],
       secondaryMuscles: [],
       equipment: inferEquipment(title),
@@ -114,6 +115,7 @@ function normalizeExercises(json) {
       id: 'cu_' + ex.id,
       name: ex.title,
       category: categorizeExercise(ex.title),
+      cardioMachine: inferCardioMachine(ex.title),
       primaryMuscles: [],
       secondaryMuscles: [],
       equipment: inferEquipment(ex.title),
@@ -127,8 +129,34 @@ function normalizeExercises(json) {
     });
   }
 
+  // Seeded custom cardio exercises FORGE always needs (Stairmaster, Outdoor Run).
+  // Only added if not already present by name.
+  const existingNames = new Set(out.map((e) => (e.name || '').toLowerCase()));
+  for (const seed of SEEDED_CARDIO) {
+    if (!existingNames.has(seed.name.toLowerCase())) {
+      out.push({
+        id: seed.id,
+        name: seed.name,
+        category: 'cardio',
+        cardioMachine: seed.machine,
+        primaryMuscles: [], secondaryMuscles: [],
+        equipment: seed.equipment,
+        isCustom: true,
+        notes: '',
+        substituteIds: [], constraintFlags: [],
+        hevyTemplateId: null,
+        createdAt: nowIso(), updatedAt: nowIso(),
+      });
+    }
+  }
+
   return out;
 }
+
+const SEEDED_CARDIO = [
+  { id: 'cu_seed_stairmaster', name: 'Stairmaster', machine: 'stairmaster', equipment: 'Stairmaster' },
+  { id: 'cu_seed_outdoor_run', name: 'Outdoor Run',  machine: 'outdoor_run', equipment: 'None' },
+];
 
 function normalizeRoutines(json) {
   const out = [];
@@ -354,6 +382,19 @@ function inferEquipment(name) {
   if (/(elliptical|treadmill|stairmaster|bike|air bike)/.test(n)) return 'Cardio Machine';
   if (/(ball)/.test(n)) return 'Ball';
   return 'Bodyweight';
+}
+
+// Map a cardio exercise name to its machine so the log form can show the
+// right intensity fields. Returns null for non-cardio or unknown machines.
+function inferCardioMachine(name) {
+  const n = (name || '').toLowerCase();
+  if (/stairmaster|stair climber|stairclimber/.test(n)) return 'stairmaster';
+  if (/treadmill|incline walk/.test(n))                 return 'treadmill';
+  if (/elliptical/.test(n))                              return 'elliptical';
+  if (/outdoor run|road run|trail run|running outside/.test(n)) return 'outdoor_run';
+  if (/cycling|air bike|recumbent|stationary bike/.test(n)) return 'bike';
+  if (/rowing|rower|erg/.test(n)) return 'rower';
+  return null;
 }
 
 function inferConstraints(name, note = '') {

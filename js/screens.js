@@ -1,14 +1,14 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=9';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=9';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=9';
+import * as db from './db.js?v=13';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=13';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=13';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=9';
+} from './ui.js?v=13';
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -61,17 +61,154 @@ export async function renderHome(container) {
 
   container.appendChild(section('THIS WEEK', weeklyAdherence(completedSessions, routines)));
 
+  // v0.6.0 · recent PRs from last completed session (celebration)
+  const lastCompleted = completedSessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''))[0];
+  if (lastCompleted && (lastCompleted.prs || []).length > 0) {
+    const isRecent = (Date.now() - new Date(lastCompleted.completedAt).getTime()) < 3 * 86400000;
+    if (isRecent) {
+      container.appendChild(await renderRecentPrsCard(lastCompleted));
+    }
+  }
+
+  // v0.6.0 · progression prompts + weekly digest
+  container.appendChild(await renderProgressionSection(completedSessions));
+
   const missions = [];
   if (weightGoal) missions.push(weightMissionCard(weightGoal, latestWeight));
   if (pushupGoal) missions.push(pushupMissionCard(pushupGoal));
   if (inca?.targetDate) missions.push(countdownCard('◆ INCA TRAIL', inca.targetDate, inca.metadata?.description));
   if (missions.length > 0) container.appendChild(section('MISSIONS', el('div', { class: 'mission-stack' }, missions)));
 
+  container.appendChild(await stepsCardSection());
+
   container.appendChild(section('QUICK STATS', el('div', { class: 'stat-strip' }, [
     statMini('WEIGHT', latestWeight?.weight != null ? latestWeight.weight : '—', latestWeight?.weight != null ? 'LB' : ''),
     statMini('SESSIONS', completedSessions.length, 'LOGGED'),
     statMini('GOALS', goals.length, 'TRACKED'),
   ])));
+}
+
+async function renderRecentPrsCard(session) {
+  const list = el('div', {}, (session.prs || []).slice(0, 5).map((pr) =>
+    el('div', { class: 'pr-row' }, [
+      el('span', { class: 'pr-star', text: '★' }),
+      el('div', { class: 'pr-main' }, [
+        el('div', { class: 'pr-name', text: pr.exerciseName }),
+        el('div', { class: 'pr-meta', text: `${(pr.type || '').toUpperCase()} · ${pr.value}` }),
+      ]),
+    ])
+  ));
+  return section('◆ NEW PERSONAL BESTS', el('div', { class: 'pr-card' }, [list]));
+}
+
+async function renderProgressionSection(sessions) {
+  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=13');
+  const sensitivity = await db.getSetting('promptSensitivity', 'balanced');
+  const sessionsNewestFirst = sessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+  // Gather unique exerciseIds with recent activity
+  const seen = new Set();
+  for (const s of sessionsNewestFirst.slice(0, 20)) {
+    for (const ex of (s.exercises || [])) if (ex.exerciseName) seen.add(ex.exerciseId);
+  }
+  const prompts = [];
+  const seenIds = [...seen];
+  for (const id of seenIds) {
+    const ex = sessionsNewestFirst.find((s) => (s.exercises || []).some((e) => e.exerciseId === id))
+      ?.exercises.find((e) => e.exerciseId === id);
+    if (!ex) continue;
+    const prog = suggestProgression(id, sessionsNewestFirst, sensitivity);
+    if (prog) {
+      prompts.push({ kind: 'increase', name: ex.exerciseName, text: `TRY ${prog.target} LB NEXT · ${prog.reason}` });
+      continue;
+    }
+    const plateau = detectPlateau(id, sessionsNewestFirst, 4);
+    if (plateau && prompts.filter((p) => p.kind === 'plateau').length < 2) {
+      prompts.push({ kind: 'plateau', name: ex.exerciseName, text: `PLATEAU · NO PR IN ${plateau.weeks} WEEKS AT ${plateau.maxWeight} LB. CONSIDER DELOAD OR SWAP.` });
+      continue;
+    }
+    const rot = detectRotation(id, sessionsNewestFirst, 8);
+    if (rot && prompts.filter((p) => p.kind === 'rotation').length < 2) {
+      prompts.push({ kind: 'rotation', name: ex.exerciseName, text: `${rot.weeksInARow} WEEKS ON THIS EXERCISE. TRY A VARIATION.` });
+    }
+  }
+  if (prompts.length === 0) {
+    return el('div', {});
+  }
+  const list = el('div', { class: 'prompt-stack' }, prompts.slice(0, 4).map((p) =>
+    el('div', { class: `prompt-card prompt-${p.kind}` }, [
+      el('div', { class: 'prompt-kind', text: p.kind === 'increase' ? '↑ PROGRESSION' : p.kind === 'plateau' ? '◆ PLATEAU' : '◇ ROTATION' }),
+      el('div', { class: 'prompt-name', text: p.name }),
+      el('div', { class: 'prompt-text', text: p.text }),
+    ])
+  ));
+  return section('SUGGESTIONS', list);
+}
+
+async function stepsCardSection() {
+  const [strideIn, stepGoal] = await Promise.all([
+    db.getSetting('strideLengthIn', 30),
+    db.getSetting('stepGoal', 10000),
+  ]);
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  const todayIso = `${y}-${m}-${d}`;
+  const existing = await db.get('dailyActivity', todayIso);
+  const steps = existing?.steps ?? null;
+
+  const distMi = steps != null ? Math.round((steps * strideIn) / 63360 * 100) / 100 : null;
+  const pct = stepGoal > 0 && steps != null ? Math.min(100, (steps / stepGoal) * 100) : 0;
+
+  const stepsInput = el('input', {
+    class: 'form-input', type: 'number', name: 'steps',
+    value: steps ?? '', placeholder: 'e.g. 8500',
+  });
+  const distDisplay = el('span', { class: 'steps-dist', text: distMi != null ? `${distMi} MI` : '—' });
+
+  stepsInput.addEventListener('input', () => {
+    const v = Number(stepsInput.value);
+    const md = v && strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
+    distDisplay.textContent = md != null ? `${md} MI` : '—';
+  });
+
+  const saveBtn = el('button', { class: 'btn btn-primary' }, [
+    el('span', { class: 'btn-title', text: 'SAVE TODAY' }),
+    el('span', { class: 'btn-sub', text: 'STORES IN DAILY ACTIVITY' }),
+  ]);
+  saveBtn.addEventListener('click', async () => {
+    const v = Number(stepsInput.value);
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=13'); toast('ENTER A STEP COUNT', 'error'); return; }
+    const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
+    await db.put('dailyActivity', {
+      date: todayIso, steps: v, distanceMi: dist,
+      strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
+    });
+    const { toast } = await import('./ui.js?v=13');
+    toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
+  });
+
+  const card = el('div', { class: 'steps-card' }, [
+    el('div', { class: 'steps-row' }, [
+      el('div', { class: 'steps-col' }, [
+        el('span', { class: 'steps-label', text: 'STEPS TODAY' }),
+        stepsInput,
+      ]),
+      el('div', { class: 'steps-col steps-col-dist' }, [
+        el('span', { class: 'steps-label', text: 'DISTANCE' }),
+        distDisplay,
+      ]),
+    ]),
+    el('div', { class: 'steps-goal-row' }, [
+      el('span', { class: 'steps-label', text: `GOAL ${stepGoal.toLocaleString()}` }),
+      el('span', { class: 'steps-goal-pct', text: `${Math.round(pct)}%` }),
+    ]),
+    el('div', { class: 'pbar' }, [
+      el('div', { class: 'pbar-fill', style: `width:${pct}%;background:var(--amber);` }),
+    ]),
+    saveBtn,
+  ]);
+  return section('DAILY STEPS', card);
 }
 
 function statMini(label, value, sub) {
@@ -121,6 +258,13 @@ function weightMissionCard(goal, latestMeasurement) {
   const doneDelta = start - current;
   const pct = totalDelta > 0 ? Math.max(0, Math.min(100, (doneDelta / totalDelta) * 100)) : 0;
   const days = goal.targetDate ? daysUntil(goal.targetDate) : null;
+  // Milestones: 5/10/15/20/25 lb steps, then 10 lb steps to goal
+  const stops = [];
+  for (const s of [5, 10, 15, 20, 25]) if (s <= totalDelta) stops.push(s);
+  let n = 30;
+  while (n <= totalDelta) { stops.push(n); n += 10; }
+  if (totalDelta > 0 && !stops.includes(totalDelta)) stops.push(totalDelta);
+  const done = Math.max(0, doneDelta);
   return el('div', { class: 'mission-card' }, [
     el('div', { class: 'mission-header' }, [
       el('span', { class: 'mission-title', text: '◆ WEIGHT GOAL' }),
@@ -131,6 +275,13 @@ function weightMissionCard(goal, latestMeasurement) {
       el('span', { class: 'mission-target', text: `→ ${target} LB` }),
     ]),
     progressBar(pct, { label: 'PROGRESS', value: `${Math.round(pct)}%` }),
+    stops.length > 0
+      ? el('div', { class: 'milestone-row' }, stops.map((lb) => {
+          const hit = done >= lb;
+          const cls = 'milestone-chip' + (hit ? ' milestone-chip-hit' : '');
+          return el('span', { class: cls, text: `${hit ? '✓ ' : ''}${lb}LB` });
+        }))
+      : null,
   ]);
 }
 
@@ -247,13 +398,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=9');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=13');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=9');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=13');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -304,7 +455,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=9');
+  const { startSession } = await import('./workout.js?v=13');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -586,6 +737,7 @@ async function renderExerciseForm(container, existing) {
   form.appendChild(formField('EQUIPMENT', 'text', 'equipment', model.equipment, 'e.g. Cable Machine, Dumbbell, Bodyweight'));
   form.appendChild(formField('PRIMARY MUSCLES', 'text', 'primaryMuscles', (model.primaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
   form.appendChild(formField('SECONDARY MUSCLES', 'text', 'secondaryMuscles', (model.secondaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
+  form.appendChild(formField('VIDEO LINK (OPTIONAL)', 'url', 'videoUrl', model.videoUrl || '', 'https://... FORM DEMO OR TUTORIAL'));
   form.appendChild(formTextarea('NOTES', 'notes', model.notes, 'Form cues, setup reminders, PT notes...'));
   container.appendChild(section(null, form));
 
@@ -601,6 +753,7 @@ async function renderExerciseForm(container, existing) {
       equipment: form.querySelector('[name="equipment"]').value.trim(),
       primaryMuscles: form.querySelector('[name="primaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
       secondaryMuscles: form.querySelector('[name="secondaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
+      videoUrl: form.querySelector('[name="videoUrl"]').value.trim() || null,
       notes: form.querySelector('[name="notes"]').value.trim(),
       updatedAt: new Date().toISOString(),
     };
@@ -617,7 +770,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=9');
+  const { renderStatsPage } = await import('./stats.js?v=13');
   return renderStatsPage(container, params);
 }
 
@@ -720,7 +873,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=9'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=13'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

@@ -1134,3 +1134,229 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(-
   padding-left: 12px;
   white-space: nowrap;
 }
+
+/* =========================================================
+   v0.5.0 · DAILY STEPS CARD (home)
+   ========================================================= */
+.steps-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.steps-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end;
+}
+.steps-col { display: flex; flex-direction: column; gap: 6px; }
+.steps-col-dist { text-align: right; }
+.steps-label {
+  font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2);
+}
+.steps-dist {
+  font-size: 28px; font-weight: 900; color: var(--amber-hi); line-height: 1;
+}
+.steps-goal-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.steps-goal-pct {
+  font-size: 12px; font-weight: 900; letter-spacing: 2px; color: var(--fg);
+}
+
+/* v0.5.0 · Inspector modal often has forms now — give scroll and spacing */
+.inspector-body .form-stack { padding: 0 4px; }
+
+/* =========================================================
+   v0.6.0 · LIGHT THEME (opt-in via [data-theme="light"])
+   ========================================================= */
+:root[data-theme="light"] {
+  --bg-void:       #fafaf7;
+  --bg-shell:      #f5f4ef;
+  --bg-card:       #ffffff;
+  --bg-elev:       #f5f4ef;
+  --border:        #d6d3cc;
+  --border-soft:   #e8e6df;
+  --muted:         #6d6a63;
+  --muted-2:       #8a8781;
+  --gray:          #b4b1a9;
+  --body:          #3d3a34;
+  --fg:            #17161c;
+
+  --amber:         #b45309;
+  --amber-hi:      #78350f;
+  --amber-lo:      #fde68a;
+  --amber-deep:    #451a03;
+  --green:         #15803d;
+  --red:           #b91c1c;
+  --blue:          #1e3a8a;
+  --blue-hi:       #1d4ed8;
+  --purple:        #6d28d9;
+}
+:root[data-theme="light"] .btn-primary .btn-title { color: #fef3c7; }
+
+/* =========================================================
+   v0.6.0 · MILESTONE CHIPS (weight goal)
+   ========================================================= */
+.milestone-row {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 10px;
+}
+.milestone-chip {
+  padding: 4px 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--muted-2);
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
+}
+.milestone-chip-hit {
+  background: var(--amber-lo); color: var(--amber-hi); border-color: var(--amber);
+}
+
+/* =========================================================
+   v0.6.0 · PROGRESSION PROMPT CARDS
+   ========================================================= */
+.prompt-stack { display: flex; flex-direction: column; gap: 8px; }
+.prompt-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.prompt-kind {
+  font-size: 10px; font-weight: 900; letter-spacing: 2px;
+  color: var(--amber);
+}
+.prompt-name {
+  margin-top: 4px;
+  font-size: 15px; font-weight: 900; color: var(--fg);
+}
+.prompt-text {
+  margin-top: 4px;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--body);
+}
+.prompt-increase { border-color: var(--amber); }
+.prompt-plateau  { border-color: var(--red); }
+.prompt-plateau .prompt-kind { color: var(--red); }
+.prompt-rotation { border-color: var(--muted); }
+.prompt-rotation .prompt-kind { color: var(--body); }
+
+/* =========================================================
+   v0.6.0 · RECENT PR CARD
+   ========================================================= */
+.pr-card {
+  background: var(--bg-card); border: 1px solid var(--green);
+  padding: 12px 14px;
+}
+.pr-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+.pr-star { font-size: 18px; color: var(--green); }
+.pr-name { font-size: 14px; font-weight: 900; color: var(--fg); }
+.pr-meta { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-top: 2px; }
+
+/* =========================================================
+   v0.6.0 · SPLIT BAR (cardio vs strength)
+   ========================================================= */
+.split-bar-wrap {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.split-bar-labels { display: flex; justify-content: space-between; }
+.split-bar-label {
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
+}
+.split-bar-cardio   { color: var(--blue-hi); }
+.split-bar-strength { color: var(--amber-hi); }
+.split-bar {
+  height: 12px;
+  background: var(--amber);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+}
+.split-bar-fill-cardio { height: 100%; background: var(--blue-hi); }
+
+/* =========================================================
+   v0.6.0 · MUSCLE BALANCE BARS
+   ========================================================= */
+.muscle-bars {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.muscle-bar-row {
+  display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 10px;
+}
+.muscle-bar-label { font-size: 11px; font-weight: 900; letter-spacing: 1px; color: var(--muted-2); }
+.muscle-bar { height: 8px; background: var(--bg-elev); border: 1px solid var(--border-soft); }
+.muscle-bar-fill { height: 100%; background: var(--amber); }
+.muscle-bar-val { font-size: 11px; font-weight: 900; color: var(--fg); min-width: 40px; text-align: right; }
+
+/* =========================================================
+   v0.6.0 · SUPERSET + SUBSTITUTES (routine editor)
+   ========================================================= */
+.superset-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.superset-toggle input { width: 18px; height: 18px; accent-color: var(--amber); }
+
+.subs-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.sub-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 8px;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  font-size: 11px; font-weight: 700; color: var(--body);
+}
+.sub-chip-x {
+  background: transparent; border: none; color: var(--muted);
+  font-size: 14px; font-weight: 900; cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.sub-add-btn { min-height: 36px; padding: 8px 12px; }
+.sub-add-btn .btn-title { font-size: 11px; letter-spacing: 2px; }
+
+/* =========================================================
+   v0.6.0 · SESSION HAMBURGER MENU BUTTON
+   ========================================================= */
+.session-menu-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg);
+  font-size: 16px; font-weight: 900;
+  padding: 4px 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+.session-menu-btn:active { transform: scale(0.95); border-color: var(--amber); }
+
+/* Small hint text used under form fields */
+.form-hint {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+  padding: 4px 2px;
+}
+
+/* =========================================================
+   v0.7.0 · CARDIO GROUP BANNER (workout screen)
+   ========================================================= */
+.group-banner {
+  background: var(--bg-elev); border: 1px solid var(--blue-hi);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.group-banner-label {
+  font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--blue-hi);
+}
+.group-banner-sub {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted-2);
+}
+.group-banner-chips {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.group-chip {
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--body);
+  padding: 8px 12px;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer;
+}
+.group-chip:active { transform: scale(0.96); border-color: var(--blue-hi); }
+.group-chip-logged {
+  border-color: var(--amber); color: var(--amber-hi); background: var(--amber-lo);
+}
+.jump-chip-groupmate {
+  border-color: var(--blue-hi);
+}
