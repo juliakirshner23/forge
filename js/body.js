@@ -1,8 +1,8 @@
 // FORGE body metrics: list, add, edit measurements
-import * as db from './db.js?v=16';
+import * as db from './db.js?v=17';
 import {
   el, section, notFound, formField, formTextarea, uid, toast, confirmModal, todayIso, formatDate,
-} from './ui.js?v=16';
+} from './ui.js?v=17';
 
 const FIELDS = [
   { key: 'weight', label: 'WEIGHT (LB)', unit: 'LB' },

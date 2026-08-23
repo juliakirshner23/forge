@@ -5,7 +5,7 @@
 // data model. Handles kg → lb conversion (Hevy stores in kg).
 // =========================================================
 
-import * as db from './db.js?v=16';
+import * as db from './db.js?v=17';
 
 const KG_TO_LB = 2.20462;
 
@@ -380,11 +380,11 @@ export function inferFocus(name) {
   // Order matters. Rehab checked first (Straight Leg Raise beats generic "leg raise" → core).
   if (/(clamshell|physio ball|long arc quad|hamstring bridge on ball|hamstring bridge)/.test(n)) return 'rehab';
   if (/^straight leg raise/.test(n)) return 'rehab';
-  if (/(plank|crunch|dead bug|russian twist|hollow hold|reverse crunch|bicycle crunch|ab wheel|toe touch|sit[- ]?up|leg raise)/.test(n)) return 'core';
+  if (/(plank|crunch|dead bug|russian twist|hollow hold|reverse crunch|bicycle crunch|ab wheel|toe touch|heel tap|sit[- ]?up|hanging knee raise|hanging leg raise|lying leg raise|leg raise)/.test(n)) return 'core';
   if (/(iyt|shoulder mobility|stretch|foam roll|mobility)/.test(n)) return 'mobility';
   if (/(elliptical|treadmill|cycling|stairmaster|air bike|recumbent|rowing|erg|outdoor run|road run|trail run|walk|\bbike\b|\bcardio\b|jog|sprint)/.test(n)) return 'cardio';
-  if (/(squat|deadlift|lunge|leg press|leg extension|leg curl|calf raise|glute bridge|hip thrust|goblet|romanian|\brdl\b|step[- ]?up|split squat|bulgarian|hip adduction|hip abduction)/.test(n)) return 'legs';
-  if (/(row|pull[- ]?up|chin[- ]?up|lat pulldown|face pull|curl|reverse fly|rear delt|shrug)/.test(n)) return 'pull';
+  if (/(squat|deadlift|lunge|leg press|leg extension|leg curl|calf raise|glute bridge|hip thrust|goblet|romanian|\brdl\b|step[- ]?up|split squat|bulgarian|hip adduction|hip abduction|kettlebell swing|kb swing|good morning)/.test(n)) return 'legs';
+  if (/(row|pull[- ]?up|chin[- ]?up|dead hang|hang|lat pulldown|face pull|curl|reverse fly|rear delt|shrug)/.test(n)) return 'pull';
   if (/(bench press|chest press|shoulder press|overhead press|incline press|chest fly|push[- ]?up|dip|tricep|arnold|lateral raise|front raise)/.test(n)) return 'push';
   return 'other';
 }

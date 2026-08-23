@@ -1,16 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=16';
-import { importBundledHevyBackup } from './import.js?v=16';
-import { toast } from './ui.js?v=16';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=16';
-import { renderLog, renderSession } from './workout.js?v=16';
-import { renderHistory } from './history.js?v=16';
-import { renderBody } from './body.js?v=16';
-import { renderGoals } from './goals.js?v=16';
-import { renderSettings } from './settings.js?v=16';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=16';
+import * as db from './db.js?v=17';
+import { importBundledHevyBackup } from './import.js?v=17';
+import { toast } from './ui.js?v=17';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=17';
+import { renderLog, renderSession } from './workout.js?v=17';
+import { renderHistory } from './history.js?v=17';
+import { renderBody } from './body.js?v=17';
+import { renderGoals } from './goals.js?v=17';
+import { renderSettings } from './settings.js?v=17';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=17';
 
-const APP_VERSION = '0.7.3';
+const APP_VERSION = '0.7.4';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -83,6 +83,7 @@ async function boot() {
     await ensureSeedData();
     await migrateV050();
     await migrateV072();
+    await migrateV074();
     await applyTheme();
     await checkBackupReminder();
     if (!window.location.hash) window.location.hash = '#/home';
@@ -99,7 +100,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=16');
+  const { inferFocus } = await import('./import.js?v=17');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -109,6 +110,28 @@ async function migrateV072() {
     }
   }
   await db.put('meta', { key: 'migrated_v072', value: { at: new Date().toISOString() } });
+}
+
+// v0.7.4 · Re-classify EVERY exercise (skips any with focusEditedByUser=true).
+// Runs once because v0.7.2 froze bad classifications for many exercises.
+async function migrateV074() {
+  const done = await db.get('meta', 'migrated_v074');
+  if (done) return;
+  const { inferFocus } = await import('./import.js?v=17');
+  const exs = await db.getAll('exercises');
+  let changed = 0;
+  for (const e of exs) {
+    if (e.focusEditedByUser) continue;
+    const fresh = inferFocus(e.name);
+    if (fresh !== e.focus) {
+      e.focus = fresh;
+      e.updatedAt = new Date().toISOString();
+      await db.put('exercises', e);
+      changed++;
+    }
+  }
+  await db.put('meta', { key: 'migrated_v074', value: { at: new Date().toISOString(), changed } });
+  if (changed > 0) console.log(`v0.7.4 migration · reclassified ${changed} exercise(s)`);
 }
 
 async function applyTheme() {

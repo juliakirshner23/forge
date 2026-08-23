@@ -1,14 +1,14 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=16';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=16';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=16';
+import * as db from './db.js?v=17';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=17';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=17';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=16';
+} from './ui.js?v=17';
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -103,7 +103,7 @@ async function renderRecentPrsCard(session) {
 }
 
 async function renderProgressionSection(sessions) {
-  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=16');
+  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=17');
   const sensitivity = await db.getSetting('promptSensitivity', 'balanced');
   const sessionsNewestFirst = sessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
   // Don't fire any suggestions until the user has enough logged history.
@@ -301,13 +301,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=16'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=17'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=16');
+    const { toast } = await import('./ui.js?v=17');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -521,13 +521,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=16');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=17');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=16');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=17');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -578,7 +578,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=16');
+  const { startSession } = await import('./workout.js?v=17');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -857,6 +857,16 @@ async function renderExerciseForm(container, existing) {
   const form = el('div', { class: 'form-stack' });
   form.appendChild(formField('NAME', 'text', 'name', model.name, 'e.g. Cable Row (Neutral Grip)'));
   form.appendChild(formSelect('CATEGORY', 'category', model.category, CATEGORIES.map((c) => ({ value: c, label: c.toUpperCase() }))));
+  form.appendChild(formSelect('FOCUS (BADGE COLOR)', 'focus', model.focus || 'other', [
+    { value: 'legs',     label: 'LEG · GREEN' },
+    { value: 'core',     label: 'COR · YELLOW' },
+    { value: 'push',     label: 'PSH · RED' },
+    { value: 'pull',     label: 'PUL · BLUE' },
+    { value: 'cardio',   label: 'CAR · CYAN' },
+    { value: 'rehab',    label: 'REH · PURPLE' },
+    { value: 'mobility', label: 'MOB · GRAY' },
+    { value: 'other',    label: 'OTH · DARK GRAY' },
+  ]));
   form.appendChild(formField('EQUIPMENT', 'text', 'equipment', model.equipment, 'e.g. Cable Machine, Dumbbell, Bodyweight'));
   form.appendChild(formField('PRIMARY MUSCLES', 'text', 'primaryMuscles', (model.primaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
   form.appendChild(formField('SECONDARY MUSCLES', 'text', 'secondaryMuscles', (model.secondaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
@@ -869,10 +879,13 @@ async function renderExerciseForm(container, existing) {
     el('span', { class: 'btn-sub', text: isEdit ? 'UPDATE THIS EXERCISE' : 'ADDS TO YOUR LIBRARY' }),
   ]);
   saveBtn.addEventListener('click', async () => {
+    const newFocus = form.querySelector('[name="focus"]').value;
     const updated = {
       ...model,
       name: form.querySelector('[name="name"]').value.trim(),
       category: form.querySelector('[name="category"]').value,
+      focus: newFocus,
+      focusEditedByUser: newFocus !== (model.focus || null) ? true : (model.focusEditedByUser || false),
       equipment: form.querySelector('[name="equipment"]').value.trim(),
       primaryMuscles: form.querySelector('[name="primaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
       secondaryMuscles: form.querySelector('[name="secondaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
@@ -893,7 +906,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=16');
+  const { renderStatsPage } = await import('./stats.js?v=17');
   return renderStatsPage(container, params);
 }
 
@@ -996,7 +1009,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=16'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=17'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {
