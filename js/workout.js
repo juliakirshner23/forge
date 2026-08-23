@@ -1,10 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=13';
+import * as db from './db.js?v=16';
 import {
   el, section, notFound, formField, formTextarea, formSelect,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=13';
-import { est1RM } from './progression.js?v=13';
+} from './ui.js?v=16';
+import { est1RM } from './progression.js?v=16';
 
 // ---------- LOG TAB (entry point) ----------
 export async function renderLog(container) {
@@ -658,7 +658,7 @@ async function onFinishClick(session) {
   clearInterval(elapsedTimerId); clearInterval(restTimerId);
   window.location.hash = `#/session/${session.id}/summary`;
 }
-async function refresh() { const m = await import('./app.js?v=13'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=16'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -735,21 +735,18 @@ async function renderSessionSummary(container, session) {
   }
   container.appendChild(section('EXERCISES DONE', exList));
 
-  // Manual calorie entry + notes (only when finishing)
+  // Notes only (calorie entry moved to HOME · Daily Calories card, v0.7.3)
   if (isFinishing) {
     const form = el('div', { class: 'form-stack' });
-    form.appendChild(formField('CARDIO CALORIES (OPTIONAL)', 'number', 'cardioCalories', session.cardioCalories ?? '', 'FROM MACHINE OR ESTIMATE'));
-    form.appendChild(formField('STRENGTH CALORIES (OPTIONAL)', 'number', 'strengthCalories', session.strengthCalories ?? '', 'FROM MACHINE OR ESTIMATE'));
     form.appendChild(formTextarea('SESSION NOTES', 'notes', session.notes, 'How did the workout feel? Anything to remember?'));
     container.appendChild(section('LOG DETAILS', form));
+    container.appendChild(el('div', { class: 'form-hint', style: 'padding: 0 20px;', text: 'ENTER CALORIES BURNED ON HOME → DAILY CALORIES.' }));
 
     const saveBtn = el('button', { class: 'btn btn-primary' }, [
       el('span', { class: 'btn-title', text: 'SAVE SESSION' }),
       el('span', { class: 'btn-sub', text: 'MARK AS COMPLETE + ADD TO HISTORY' }),
     ]);
     saveBtn.addEventListener('click', async () => {
-      session.cardioCalories = form.querySelector('[name="cardioCalories"]').value ? Number(form.querySelector('[name="cardioCalories"]').value) : null;
-      session.strengthCalories = form.querySelector('[name="strengthCalories"]').value ? Number(form.querySelector('[name="strengthCalories"]').value) : null;
       session.notes = form.querySelector('[name="notes"]').value.trim();
       session.completedAt = completedAt.toISOString();
       session.isActive = false;
@@ -761,15 +758,15 @@ async function renderSessionSummary(container, session) {
     });
     container.appendChild(section('FINISH', el('div', { class: 'action-stack' }, [saveBtn])));
   } else {
-    // Historical session: show notes/calories read-only + delete button
+    // Historical session: read-only notes; show legacy calorie fields if they existed
     if (session.notes) container.appendChild(section('NOTES', el('div', { class: 'note-block', text: session.notes })));
     const infoCard = el('div', { class: 'settings-list' });
     if (session.cardioCalories != null) infoCard.appendChild(el('div', { class: 'settings-row' }, [
-      el('span', { class: 'settings-key', text: 'CARDIO CALORIES' }),
+      el('span', { class: 'settings-key', text: 'CARDIO CALORIES (LEGACY)' }),
       el('span', { class: 'settings-value', text: String(session.cardioCalories) }),
     ]));
     if (session.strengthCalories != null) infoCard.appendChild(el('div', { class: 'settings-row' }, [
-      el('span', { class: 'settings-key', text: 'STRENGTH CALORIES' }),
+      el('span', { class: 'settings-key', text: 'STRENGTH CALORIES (LEGACY)' }),
       el('span', { class: 'settings-value', text: String(session.strengthCalories) }),
     ]));
     if (infoCard.children.length > 0) container.appendChild(section('DETAILS', infoCard));
@@ -781,7 +778,7 @@ async function renderSessionSummary(container, session) {
       ]),
       el('button', { class: 'btn btn-outline', onclick: () => openEditPastSession(session) }, [
         el('span', { class: 'btn-title', text: 'EDIT DETAILS' }),
-        el('span', { class: 'btn-sub', text: 'CALORIES · NOTES · DATE' }),
+        el('span', { class: 'btn-sub', text: 'DATE · NOTES' }),
       ]),
       el('button', { class: 'btn btn-danger', onclick: () => {
         confirmModal('DELETE SESSION?', 'This permanently removes this session. Cannot be undone.', async () => {
@@ -889,8 +886,6 @@ function openEditPastSession(session) {
   const form = el('div', { class: 'form-stack' });
   const dateVal = (session.completedAt || '').slice(0, 10);
   form.appendChild(formField('DATE (YYYY-MM-DD)', 'date', 'date', dateVal, ''));
-  form.appendChild(formField('CARDIO CALORIES', 'number', 'cardioCal', session.cardioCalories ?? '', 'FROM WATCH OR ESTIMATE'));
-  form.appendChild(formField('STRENGTH CALORIES', 'number', 'strengthCal', session.strengthCalories ?? '', 'FROM WATCH OR ESTIMATE'));
   form.appendChild(formTextarea('NOTES', 'notes', session.notes || '', ''));
 
   const saveBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
@@ -902,10 +897,6 @@ function openEditPastSession(session) {
       const prevTime = (session.completedAt || '').slice(10) || 'T12:00:00.000Z';
       session.completedAt = d + prevTime;
     }
-    const c = form.querySelector('[name="cardioCal"]').value;
-    const s = form.querySelector('[name="strengthCal"]').value;
-    session.cardioCalories = c ? Number(c) : null;
-    session.strengthCalories = s ? Number(s) : null;
     session.notes = form.querySelector('[name="notes"]').value.trim();
     await db.put('sessions', session);
     document.getElementById('inspector-scrim').hidden = true;

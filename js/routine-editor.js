@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=13';
+import * as db from './db.js?v=16';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
   DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=13';
+} from './ui.js?v=16';
 
 const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
 
@@ -123,7 +123,7 @@ function editableExerciseRow(model, ex, idx, exById, rerender) {
 
   row.appendChild(el('div', { class: 'edit-ex-header' }, [
     el('div', { class: 'exercise-num', text: idx + 1 }),
-    catBadge(libEx?.category || 'strength'),
+    catBadge(libEx || "other"),
     el('div', { class: 'edit-ex-name', text: ex.exerciseName || libEx?.name || '(deleted)' }),
     el('div', { class: 'edit-ex-controls' }, [
       el('button', { class: 'edit-btn', text: '↑', onclick: () => moveExercise(model, idx, -1, rerender) }),

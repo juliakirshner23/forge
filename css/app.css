@@ -325,14 +325,26 @@ input { font-family: inherit; }
 .tag-neutral  { background: var(--border); color: var(--body); }
 
 /* =========================================================
-   CATEGORY BADGE  ·  small colored square with letter
+   CATEGORY / FOCUS BADGE  ·  colored pill with 3-letter code
    ========================================================= */
 .cat {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px;
-  font-size: 11px; font-weight: 900;
+  min-width: 40px; height: 26px;
+  padding: 0 6px;
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
   flex-shrink: 0;
+  color: #fafafa;
 }
+.cat-legs   { background: #16a34a; }  /* green */
+.cat-core   { background: #eab308; color: #1c1917; } /* amber-yellow */
+.cat-push   { background: #dc2626; }  /* red */
+.cat-pull   { background: #2563eb; }  /* blue */
+.cat-cardio { background: #0ea5e9; }  /* cyan */
+.cat-rehab  { background: #7c3aed; }  /* purple */
+.cat-mobility { background: #64748b; } /* slate */
+.cat-other  { background: #57534e; }   /* stone */
+/* legacy classes (safety net if any old category name slips through) */
+.cat-strength { background: #57534e; }
 
 /* =========================================================
    TODAY CARD  ·  home screen
@@ -1360,3 +1372,45 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(-
 .jump-chip-groupmate {
   border-color: var(--blue-hi);
 }
+
+/* =========================================================
+   v0.7.3 · DAILY CALORIES CARD (home)
+   ========================================================= */
+.calories-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.calories-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.calories-col {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+}
+.calories-label {
+  font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--muted-2);
+}
+.calories-value {
+  font-size: 28px; font-weight: 900; color: var(--amber-hi); line-height: 1;
+}
+.calories-value-burn { color: var(--body); }
+.calories-value-net  { color: var(--fg); }
+.calories-bars {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.calories-edit {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.calories-edit-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px;
+}
+.calories-input { font-size: 15px; padding: 10px 12px; }
+.calories-save { padding: 8px 16px; min-height: 42px; align-items: center; justify-content: center; flex-direction: row; }
+.calories-save .btn-title { font-size: 12px; letter-spacing: 2px; }
+.calories-hint {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+}
+.calories-food-link { padding: 10px 14px; }
+.calories-food-link .btn-title { font-size: 12px; letter-spacing: 2px; }

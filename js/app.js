@@ -1,16 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=13';
-import { importBundledHevyBackup } from './import.js?v=13';
-import { toast } from './ui.js?v=13';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=13';
-import { renderLog, renderSession } from './workout.js?v=13';
-import { renderHistory } from './history.js?v=13';
-import { renderBody } from './body.js?v=13';
-import { renderGoals } from './goals.js?v=13';
-import { renderSettings } from './settings.js?v=13';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=13';
+import * as db from './db.js?v=16';
+import { importBundledHevyBackup } from './import.js?v=16';
+import { toast } from './ui.js?v=16';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=16';
+import { renderLog, renderSession } from './workout.js?v=16';
+import { renderHistory } from './history.js?v=16';
+import { renderBody } from './body.js?v=16';
+import { renderGoals } from './goals.js?v=16';
+import { renderSettings } from './settings.js?v=16';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=16';
 
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.7.3';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -82,6 +82,7 @@ async function boot() {
     await db.openDb();
     await ensureSeedData();
     await migrateV050();
+    await migrateV072();
     await applyTheme();
     await checkBackupReminder();
     if (!window.location.hash) window.location.hash = '#/home';
@@ -92,6 +93,22 @@ async function boot() {
     document.getElementById('app-content').innerHTML =
       `<section class="hero"><div class="eyebrow" style="color:#dc2626;">BOOT FAILED</div><h1>ERROR</h1><p class="hero-sub">${err.message}</p></section>`;
   }
+}
+
+// v0.7.2 · Backfill `focus` on existing exercises using the same rules as import.
+async function migrateV072() {
+  const done = await db.get('meta', 'migrated_v072');
+  if (done) return;
+  const { inferFocus } = await import('./import.js?v=16');
+  const exs = await db.getAll('exercises');
+  for (const e of exs) {
+    if (e.focus == null) {
+      e.focus = inferFocus(e.name);
+      e.updatedAt = new Date().toISOString();
+      await db.put('exercises', e);
+    }
+  }
+  await db.put('meta', { key: 'migrated_v072', value: { at: new Date().toISOString() } });
 }
 
 async function applyTheme() {

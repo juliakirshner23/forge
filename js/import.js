@@ -5,7 +5,7 @@
 // data model. Handles kg → lb conversion (Hevy stores in kg).
 // =========================================================
 
-import * as db from './db.js?v=13';
+import * as db from './db.js?v=16';
 
 const KG_TO_LB = 2.20462;
 
@@ -94,6 +94,7 @@ function normalizeExercises(json) {
       id: 'hv_' + hevyId,
       name: title,
       category: categorizeExercise(title),
+      focus: inferFocus(title),
       cardioMachine: inferCardioMachine(title),
       primaryMuscles: [],
       secondaryMuscles: [],
@@ -115,6 +116,7 @@ function normalizeExercises(json) {
       id: 'cu_' + ex.id,
       name: ex.title,
       category: categorizeExercise(ex.title),
+      focus: inferFocus(ex.title),
       cardioMachine: inferCardioMachine(ex.title),
       primaryMuscles: [],
       secondaryMuscles: [],
@@ -369,6 +371,22 @@ function categorizeExercise(name) {
   if (/(clamshell|hip abduction|hip adduction|straight leg raise|hamstring bridge|glute bridge|long arc quad|physio ball)/.test(n)) return 'rehab';
   if (/(iyt|shoulder mobility|stretch|mobility|foam roll)/.test(n)) return 'mobility';
   return 'strength';
+}
+
+// Muscle-group focus (used for the small colored badge in lists).
+// Independent from `category`, which drives filtering / stats logic.
+export function inferFocus(name) {
+  const n = (name || '').toLowerCase();
+  // Order matters. Rehab checked first (Straight Leg Raise beats generic "leg raise" → core).
+  if (/(clamshell|physio ball|long arc quad|hamstring bridge on ball|hamstring bridge)/.test(n)) return 'rehab';
+  if (/^straight leg raise/.test(n)) return 'rehab';
+  if (/(plank|crunch|dead bug|russian twist|hollow hold|reverse crunch|bicycle crunch|ab wheel|toe touch|sit[- ]?up|leg raise)/.test(n)) return 'core';
+  if (/(iyt|shoulder mobility|stretch|foam roll|mobility)/.test(n)) return 'mobility';
+  if (/(elliptical|treadmill|cycling|stairmaster|air bike|recumbent|rowing|erg|outdoor run|road run|trail run|walk|\bbike\b|\bcardio\b|jog|sprint)/.test(n)) return 'cardio';
+  if (/(squat|deadlift|lunge|leg press|leg extension|leg curl|calf raise|glute bridge|hip thrust|goblet|romanian|\brdl\b|step[- ]?up|split squat|bulgarian|hip adduction|hip abduction)/.test(n)) return 'legs';
+  if (/(row|pull[- ]?up|chin[- ]?up|lat pulldown|face pull|curl|reverse fly|rear delt|shrug)/.test(n)) return 'pull';
+  if (/(bench press|chest press|shoulder press|overhead press|incline press|chest fly|push[- ]?up|dip|tricep|arnold|lateral raise|front raise)/.test(n)) return 'push';
+  return 'other';
 }
 
 function inferEquipment(name) {

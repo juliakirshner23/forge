@@ -1,14 +1,14 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=13';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=13';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=13';
+import * as db from './db.js?v=16';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=16';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=16';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=13';
+} from './ui.js?v=16';
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -79,6 +79,7 @@ export async function renderHome(container) {
   if (inca?.targetDate) missions.push(countdownCard('◆ INCA TRAIL', inca.targetDate, inca.metadata?.description));
   if (missions.length > 0) container.appendChild(section('MISSIONS', el('div', { class: 'mission-stack' }, missions)));
 
+  container.appendChild(await caloriesCardSection());
   container.appendChild(await stepsCardSection());
 
   container.appendChild(section('QUICK STATS', el('div', { class: 'stat-strip' }, [
@@ -102,9 +103,15 @@ async function renderRecentPrsCard(session) {
 }
 
 async function renderProgressionSection(sessions) {
-  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=13');
+  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=16');
   const sensitivity = await db.getSetting('promptSensitivity', 'balanced');
   const sessionsNewestFirst = sessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+  // Don't fire any suggestions until the user has enough logged history.
+  // "Enough" = at least 5 completed sessions and 14+ days since the earliest one.
+  if (sessionsNewestFirst.length < 5) return el('div', {});
+  const earliest = sessionsNewestFirst[sessionsNewestFirst.length - 1];
+  const daysSinceFirst = (Date.now() - new Date(earliest.completedAt).getTime()) / 86400000;
+  if (daysSinceFirst < 14) return el('div', {});
   // Gather unique exerciseIds with recent activity
   const seen = new Set();
   for (const s of sessionsNewestFirst.slice(0, 20)) {
@@ -144,6 +151,122 @@ async function renderProgressionSection(sessions) {
   return section('SUGGESTIONS', list);
 }
 
+async function caloriesCardSection() {
+  const KG_PER_LB = 0.453592;
+  const MET_BY_NAME_HINT = [
+    { m: 'stairmaster', met: 9.0 }, { m: 'stair', met: 8.0 },
+    { m: 'incline walk', met: 8.0 }, { m: 'treadmill', met: 6.0 },
+    { m: 'cycling', met: 7.0 }, { m: 'bike', met: 7.0 },
+    { m: 'elliptical', met: 5.0 }, { m: 'walk', met: 3.8 },
+    { m: 'run', met: 9.0 }, { m: 'row', met: 7.0 },
+  ];
+  const MET_BY_CATEGORY = { strength: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
+
+  const todayIsoLocal = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+
+  const [budget, netGoal, meals, sessions, exercises, measurements, override] = await Promise.all([
+    db.getSetting('calorieBudget', 2000),
+    db.getSetting('netCalorieGoal', 1800),
+    db.getAll('mealLog'),
+    db.getAll('sessions'),
+    db.getAll('exercises'),
+    db.getAll('bodyMeasurements'),
+    db.get('dailyCalorieAdjustments', todayIsoLocal),
+  ]);
+
+  const foodKcal = meals.filter((m) => m.date === todayIsoLocal).reduce((s, m) => s + (m.calories || 0), 0);
+
+  // Auto exercise kcal (MET × weight × duration for today's sessions)
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const bodyLb = (() => {
+    const w = measurements.filter((m) => m.weight != null).sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+    return w?.weight ?? 160;
+  })();
+  const kg = bodyLb * KG_PER_LB;
+  function metForEx(libEx) {
+    if (!libEx) return MET_BY_CATEGORY.strength;
+    const n = (libEx.name || '').toLowerCase();
+    for (const h of MET_BY_NAME_HINT) if (n.includes(h.m)) return h.met;
+    return MET_BY_CATEGORY[libEx.category] || MET_BY_CATEGORY.strength;
+  }
+  let autoKcal = 0;
+  for (const s of sessions) {
+    if (s.isActive || !s.completedAt || !s.startedAt) continue;
+    if (s.completedAt.slice(0, 10) !== todayIsoLocal) continue;
+    const hours = (new Date(s.completedAt) - new Date(s.startedAt)) / 3600000;
+    if (hours <= 0) continue;
+    const exs = s.exercises || [];
+    if (exs.length === 0) continue;
+    const avgMet = exs.reduce((n, ex) => n + metForEx(exById.get(ex.exerciseId)), 0) / exs.length;
+    autoKcal += Math.round(avgMet * kg * hours);
+  }
+  const isOverride = override?.exerciseCaloriesOverride != null;
+  const exKcal = isOverride ? override.exerciseCaloriesOverride : autoKcal;
+  const net = foodKcal - exKcal;
+  const foodPct = budget > 0 ? Math.min(150, (foodKcal / budget) * 100) : 0;
+  const netPct = netGoal > 0 ? Math.min(150, (net / netGoal) * 100) : 0;
+
+  // Editable exercise calories input (creates/updates daily override)
+  const input = el('input', {
+    class: 'form-input calories-input', type: 'number', min: '0', step: '1',
+    placeholder: isOverride ? '' : `AUTO ${autoKcal}`,
+    value: isOverride ? String(override.exerciseCaloriesOverride) : '',
+  });
+  const hint = el('div', { class: 'calories-hint',
+    text: isOverride ? `MANUAL · CLEAR TO USE AUTO (${autoKcal})` : `AUTO-ESTIMATED FROM TODAY'S WORKOUTS` });
+  const saveBtn = el('button', { class: 'btn btn-primary calories-save' }, [ el('span', { class: 'btn-title', text: 'SAVE' }) ]);
+  saveBtn.addEventListener('click', async () => {
+    const v = input.value.trim();
+    if (v === '') { await db.remove('dailyCalorieAdjustments', todayIsoLocal); toastLocal(`CLEARED · USING AUTO (${autoKcal})`); return; }
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) { toastLocal('ENTER A NUMBER', 'error'); return; }
+    await db.put('dailyCalorieAdjustments', { date: todayIsoLocal, exerciseCaloriesOverride: n, updatedAt: new Date().toISOString() });
+    toastLocal(`SAVED · ${n} KCAL BURNED TODAY`);
+  });
+
+  function toastLocal(msg, kind = 'ok') {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = msg; t.className = `toast show toast-${kind}`;
+    setTimeout(() => { t.className = `toast toast-${kind}`; }, 2200);
+    setTimeout(() => refresh(), 400);
+  }
+
+  const card = el('div', { class: 'calories-card' }, [
+    el('div', { class: 'calories-row' }, [
+      el('div', { class: 'calories-col' }, [
+        el('span', { class: 'calories-label', text: 'FOOD' }),
+        el('span', { class: 'calories-value', text: String(foodKcal) }),
+      ]),
+      el('div', { class: 'calories-col' }, [
+        el('span', { class: 'calories-label', text: 'BURN' }),
+        el('span', { class: 'calories-value calories-value-burn', text: String(exKcal) }),
+      ]),
+      el('div', { class: 'calories-col' }, [
+        el('span', { class: 'calories-label', text: 'NET' }),
+        el('span', { class: 'calories-value calories-value-net', style: `color: ${net <= netGoal ? 'var(--green)' : 'var(--red)'};`, text: String(net) }),
+      ]),
+    ]),
+    el('div', { class: 'calories-bars' }, [
+      progressBar(foodPct, { label: `FOOD vs BUDGET (${budget})`, value: `${foodKcal} / ${budget}` }),
+      progressBar(netPct, { label: `NET vs GOAL (${netGoal})`, value: `${net} / ${netGoal}` }),
+    ]),
+    el('div', { class: 'calories-edit' }, [
+      el('span', { class: 'calories-label', text: 'BURN OVERRIDE' }),
+      el('div', { class: 'calories-edit-row' }, [ input, saveBtn ]),
+      hint,
+    ]),
+    el('a', { class: 'btn btn-outline calories-food-link', href: '#/food' }, [
+      el('span', { class: 'btn-title', text: 'LOG FOOD →' }),
+      el('span', { class: 'btn-sub', text: 'BREAKFAST · LUNCH · DINNER · SNACKS' }),
+    ]),
+  ]);
+  return section('DAILY CALORIES', card);
+}
+
 async function stepsCardSection() {
   const [strideIn, stepGoal] = await Promise.all([
     db.getSetting('strideLengthIn', 30),
@@ -178,13 +301,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=13'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=16'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=13');
+    const { toast } = await import('./ui.js?v=16');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -398,13 +521,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=13');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=16');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=13');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=16');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -455,7 +578,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=13');
+  const { startSession } = await import('./workout.js?v=16');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -569,7 +692,7 @@ export async function renderLibrary(container) {
 function libraryRow(ex, useCount) {
   const flagged = ex.constraintFlags && ex.constraintFlags.length > 0;
   return el('a', { class: 'exercise-row exercise-row-link', href: `#/exercise/${ex.id}` }, [
-    catBadge(ex.category),
+    catBadge(ex),
     el('div', { class: 'exercise-main' }, [
       el('div', { class: 'exercise-name' }, [
         document.createTextNode(ex.name),
@@ -770,7 +893,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=13');
+  const { renderStatsPage } = await import('./stats.js?v=16');
   return renderStatsPage(container, params);
 }
 
@@ -873,7 +996,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=13'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=16'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

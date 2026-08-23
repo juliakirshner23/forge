@@ -2,7 +2,7 @@
 // FORGE · Shared UI helpers
 // =========================================================
 
-import * as db from './db.js?v=13';
+import * as db from './db.js?v=16';
 
 // -------- DOM builder --------
 
@@ -78,9 +78,32 @@ export function formTextarea(label, name, value, placeholder = '', rows = 4) {
 
 // -------- Badges + tags --------
 
-export function catBadge(category) {
-  const map = { strength: 'S', cardio: 'C', core: 'K', mobility: 'M', rehab: 'R' };
-  return el('span', { class: `cat cat-${category || 'strength'}`, text: map[category] || '?' });
+// Muscle-group focus badge. Prefers exercise.focus (v0.7.2+); falls back to
+// category for legacy records the migration hasn't touched yet.
+const FOCUS_LABELS = {
+  legs:     'LEG',
+  core:     'COR',
+  push:     'PSH',
+  pull:     'PUL',
+  cardio:   'CAR',
+  rehab:    'REH',
+  mobility: 'MOB',
+  other:    'OTH',
+};
+const CATEGORY_TO_FOCUS_FALLBACK = {
+  strength: 'other',
+  cardio:   'cardio',
+  core:     'core',
+  mobility: 'mobility',
+  rehab:    'rehab',
+};
+
+export function catBadge(exOrCategory) {
+  // Accept either a full exercise object or a legacy category string.
+  let focus;
+  if (typeof exOrCategory === 'string') focus = CATEGORY_TO_FOCUS_FALLBACK[exOrCategory] || 'other';
+  else focus = exOrCategory?.focus || CATEGORY_TO_FOCUS_FALLBACK[exOrCategory?.category] || 'other';
+  return el('span', { class: `cat cat-${focus}`, text: FOCUS_LABELS[focus] || '?' });
 }
 
 export function focusTagEl(tag) {

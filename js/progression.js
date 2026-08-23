@@ -98,25 +98,34 @@ export function suggestProgression(exerciseId, sessionsNewestFirst, sensitivity 
 }
 
 // --- Plateau detection ---
-// Returns true if no strict PR (weight) on this exercise in the given window.
+// Returns a plateau signal only when there's real history AND the recent
+// window's top weight is strictly less than the pre-window peak.
+// Requirements:
+//   - at least 3 completed sessions with this exercise
+//   - earliest session at least `weeks` weeks old (real history)
+//   - at least one session inside the window
+//   - max weight in window < max weight before window
 export function detectPlateau(exerciseId, sessionsNewestFirst, weeks = 4) {
   const cutoff = Date.now() - weeks * 7 * 86400000;
-  let maxSeen = 0;
-  let latestSeen = 0;
-  let sawInWindow = false;
+  const relevant = [];
   for (const s of sessionsNewestFirst) {
     if (!s.completedAt) continue;
     const ex = (s.exercises || []).find((e) => e.exerciseId === exerciseId);
     if (!ex) continue;
     const done = (ex.sets || []).filter((st) => st.done && st.actualWeightLb != null);
     if (done.length === 0) continue;
-    const top = Math.max(...done.map((st) => st.actualWeightLb));
-    const inWindow = new Date(s.completedAt).getTime() >= cutoff;
-    if (inWindow) { sawInWindow = true; latestSeen = Math.max(latestSeen, top); }
-    maxSeen = Math.max(maxSeen, top);
+    relevant.push({ ts: new Date(s.completedAt).getTime(), top: Math.max(...done.map((st) => st.actualWeightLb)) });
   }
-  return sawInWindow && latestSeen > 0 && latestSeen <= maxSeen && maxSeen > 0
-    ? { plateaued: true, maxWeight: maxSeen, weeks }
+  if (relevant.length < 3) return null;
+  const earliestTs = Math.min(...relevant.map((r) => r.ts));
+  if (Date.now() - earliestTs < weeks * 7 * 86400000) return null;
+  const inWindow = relevant.filter((r) => r.ts >= cutoff);
+  const preWindow = relevant.filter((r) => r.ts < cutoff);
+  if (inWindow.length === 0 || preWindow.length === 0) return null;
+  const maxIn = Math.max(...inWindow.map((r) => r.top));
+  const maxPre = Math.max(...preWindow.map((r) => r.top));
+  return maxIn < maxPre
+    ? { plateaued: true, maxWeight: maxPre, weeks }
     : null;
 }
 
