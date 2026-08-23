@@ -1,14 +1,14 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=17';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=17';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=17';
+import * as db from './db.js?v=18';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=18';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=18';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=17';
+} from './ui.js?v=18';
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -103,7 +103,7 @@ async function renderRecentPrsCard(session) {
 }
 
 async function renderProgressionSection(sessions) {
-  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=17');
+  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=18');
   const sensitivity = await db.getSetting('promptSensitivity', 'balanced');
   const sessionsNewestFirst = sessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
   // Don't fire any suggestions until the user has enough logged history.
@@ -301,13 +301,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=17'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=18'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=17');
+    const { toast } = await import('./ui.js?v=18');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -521,13 +521,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=17');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=18');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=17');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=18');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -578,7 +578,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=17');
+  const { startSession } = await import('./workout.js?v=18');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -609,7 +609,7 @@ function exerciseRow(ex, idx, category, libEx) {
   const constraintFlag = libEx?.constraintFlags?.length > 0;
   return el('div', { class: 'exercise-row' }, [
     el('div', { class: 'exercise-num', text: idx + 1 }),
-    catBadge(category),
+    catBadge(libEx || category),
     el('div', { class: 'exercise-main' }, [
       el('div', { class: 'exercise-name', text: ex.exerciseName || libEx?.name || '(deleted)' }),
       el('div', { class: 'exercise-meta', text: setsSummary }),
@@ -906,7 +906,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=17');
+  const { renderStatsPage } = await import('./stats.js?v=18');
   return renderStatsPage(container, params);
 }
 
@@ -1009,7 +1009,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=17'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=18'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

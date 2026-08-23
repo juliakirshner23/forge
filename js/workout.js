@@ -1,10 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=17';
+import * as db from './db.js?v=18';
 import {
   el, section, notFound, formField, formTextarea, formSelect,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=17';
-import { est1RM } from './progression.js?v=17';
+} from './ui.js?v=18';
+import { est1RM } from './progression.js?v=18';
 
 // ---------- LOG TAB (entry point) ----------
 export async function renderLog(container) {
@@ -658,7 +658,7 @@ async function onFinishClick(session) {
   clearInterval(elapsedTimerId); clearInterval(restTimerId);
   window.location.hash = `#/session/${session.id}/summary`;
 }
-async function refresh() { const m = await import('./app.js?v=17'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=18'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
