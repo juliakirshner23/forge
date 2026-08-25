@@ -6,11 +6,11 @@
 // MET × body weight × duration; can be manually overridden.
 // =========================================================
 
-import * as db from './db.js?v=19';
+import * as db from './db.js?v=20';
 import {
   el, section, formField, formSelect,
   toast, confirmModal, uid, esc, todayIso, formatDate, progressBar, progressColor,
-} from './ui.js?v=19';
+} from './ui.js?v=20';
 
 // ---------- Constants ----------
 
@@ -508,11 +508,13 @@ async function openFoodLibraryInspector() {
   } else {
     for (const f of sorted) {
       const div = document.createElement('div');
-      div.className = 'inspector-item';
+      div.className = 'food-lib-row';
       div.innerHTML = `
-        <div class="inspector-item-main">${esc(f.name)}</div>
-        <div class="inspector-item-meta">${f.caloriesPerServing} KCAL / ${esc(f.servingUnit || '1 serving')} · USED ${f.useCount || 0}×</div>
-        <a class="inspector-item-link" href="#/food-edit/${f.id}" onclick="document.getElementById('inspector-scrim').hidden=true;">EDIT ›</a>
+        <div class="food-lib-main">
+          <div class="food-lib-name">${esc(f.name)}</div>
+          <div class="food-lib-meta">${f.caloriesPerServing} KCAL / ${esc(f.servingUnit || '1 serving')} · USED ${f.useCount || 0}×</div>
+        </div>
+        <a class="food-lib-edit" href="#/food-edit/${f.id}" onclick="document.getElementById('inspector-scrim').hidden=true;">EDIT ›</a>
       `;
       body.appendChild(div);
     }
@@ -663,6 +665,6 @@ function prettyDate(iso) {
 // ---------- Refresh helper ----------
 
 async function refresh() {
-  const m = await import('./app.js?v=19');
+  const m = await import('./app.js?v=20');
   m.refresh && m.refresh();
 }

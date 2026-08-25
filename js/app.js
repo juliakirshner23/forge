@@ -1,16 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=19';
-import { importBundledHevyBackup } from './import.js?v=19';
-import { toast } from './ui.js?v=19';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=19';
-import { renderLog, renderSession } from './workout.js?v=19';
-import { renderHistory } from './history.js?v=19';
-import { renderBody } from './body.js?v=19';
-import { renderGoals } from './goals.js?v=19';
-import { renderSettings } from './settings.js?v=19';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=19';
+import * as db from './db.js?v=20';
+import { importBundledHevyBackup } from './import.js?v=20';
+import { toast } from './ui.js?v=20';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=20';
+import { renderLog, renderSession } from './workout.js?v=20';
+import { renderHistory } from './history.js?v=20';
+import { renderBody } from './body.js?v=20';
+import { renderGoals } from './goals.js?v=20';
+import { renderSettings } from './settings.js?v=20';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=20';
 
-const APP_VERSION = '0.7.6';
+const APP_VERSION = '0.7.7';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -100,7 +100,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=19');
+  const { inferFocus } = await import('./import.js?v=20');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -117,7 +117,7 @@ async function migrateV072() {
 async function migrateV074() {
   const done = await db.get('meta', 'migrated_v074');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=19');
+  const { inferFocus } = await import('./import.js?v=20');
   const exs = await db.getAll('exercises');
   let changed = 0;
   for (const e of exs) {

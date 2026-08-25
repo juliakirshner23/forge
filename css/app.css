@@ -1414,3 +1414,29 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(-
 }
 .calories-food-link { padding: 10px 14px; }
 .calories-food-link .btn-title { font-size: 12px; letter-spacing: 2px; }
+
+/* =========================================================
+   v0.7.7 · FOOD LIBRARY ROW (stacked, not cramped)
+   ========================================================= */
+.food-lib-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.food-lib-row:last-child { border-bottom: none; }
+.food-lib-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.food-lib-name {
+  font-size: 14px; font-weight: 900; color: var(--fg);
+  word-break: break-word;
+}
+.food-lib-meta {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+  word-break: break-word;
+}
+.food-lib-edit {
+  color: var(--amber); text-decoration: none;
+  font-size: 12px; font-weight: 900; letter-spacing: 2px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
