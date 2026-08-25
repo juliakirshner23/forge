@@ -1,7 +1,7 @@
 // FORGE stats: weight trend + exercise progression + PRs + analytics (v0.6.0)
-import * as db from './db.js?v=18';
-import { el, section, formatDate } from './ui.js?v=18';
-import { est1RM, muscleGroupVolume, cardioStrengthSplit, adherenceInWindow, volumeTrend } from './progression.js?v=18';
+import * as db from './db.js?v=19';
+import { el, section, formatDate } from './ui.js?v=19';
+import { est1RM, muscleGroupVolume, cardioStrengthSplit, adherenceInWindow, volumeTrend } from './progression.js?v=19';
 
 const RANGES = [
   { label: '30D', days: 30 },

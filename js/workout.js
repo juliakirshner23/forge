@@ -1,10 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=18';
+import * as db from './db.js?v=19';
 import {
-  el, section, notFound, formField, formTextarea, formSelect,
+  el, section, notFound, formField, formTextarea, formSelect, openPicker,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=18';
-import { est1RM } from './progression.js?v=18';
+} from './ui.js?v=19';
+import { est1RM } from './progression.js?v=19';
 
 // ---------- LOG TAB (entry point) ----------
 export async function renderLog(container) {
@@ -363,6 +363,10 @@ function setCell(session, current, exIdx, set, setIdx) {
     label = parts.join(' · ');
   } else if (isDuration) {
     label = `${Math.round((set.plannedDurationSec || 0) / 60)}m plan`;
+  } else if (set.type === 'single_side' && (set.actualRepsL != null || set.actualRepsR != null)) {
+    const rL = set.actualRepsL ?? '—', rR = set.actualRepsR ?? '—';
+    const wL = set.actualWeightLbL ?? '', wR = set.actualWeightLbR ?? '';
+    label = `L ${rL}${wL ? `×${wL}` : ''} · R ${rR}${wR ? `×${wR}` : ''}`;
   } else if (set.actualReps != null && set.actualWeightLb != null) {
     label = `${set.actualReps} × ${set.actualWeightLb}lb`;
   } else if (set.actualReps != null) {
@@ -494,22 +498,51 @@ async function openSetEntry(session, current, exIdx, set, setIdx) {
     form.appendChild(formSelect('SET TYPE', 'setType', set.type || 'normal', SET_TYPES));
     form.appendChild(formField('NOTES', 'text', 'setNotes', set.notes || '', 'RPE, form cue, anything'));
   } else {
-    form.appendChild(formField('REPS', 'number', 'reps', set.actualReps ?? set.plannedReps ?? '', 'e.g. 10'));
-    form.appendChild(formField('WEIGHT (LB)', 'number', 'weight', set.actualWeightLb ?? set.plannedWeightLb ?? '', 'e.g. 20', { step: '0.5' }));
-    form.appendChild(formSelect('SET TYPE', 'setType', set.type || 'normal', SET_TYPES));
+    // Set type dropdown drives whether we show single or L/R inputs.
+    const initialType = set.type || 'normal';
+    form.appendChild(formSelect('SET TYPE', 'setType', initialType, SET_TYPES));
+    const dynWrap = el('div', { class: 'form-stack' });
+    form.appendChild(dynWrap);
     form.appendChild(formField('NOTES', 'text', 'setNotes', set.notes || '', 'RPE, form cue, anything'));
-    // Live 1RM hint
     const oneRmHint = el('div', { class: 'form-hint', text: '' });
     form.appendChild(oneRmHint);
-    function updateHint() {
-      const r = Number(form.querySelector('[name="reps"]').value);
-      const w = Number(form.querySelector('[name="weight"]').value);
-      const est = est1RM(w, r);
-      oneRmHint.textContent = est ? `EST 1RM · ${est} LB` : '';
+
+    function renderFields() {
+      dynWrap.innerHTML = '';
+      const t = form.querySelector('[name="setType"]').value;
+      if (t === 'single_side') {
+        dynWrap.appendChild(formField('LEFT · REPS', 'number', 'repsL', set.actualRepsL ?? set.actualReps ?? set.plannedReps ?? '', 'e.g. 10'));
+        dynWrap.appendChild(formField('LEFT · WEIGHT (LB)', 'number', 'weightL', set.actualWeightLbL ?? set.actualWeightLb ?? set.plannedWeightLb ?? '', 'e.g. 20', { step: '0.5' }));
+        dynWrap.appendChild(formField('RIGHT · REPS', 'number', 'repsR', set.actualRepsR ?? set.actualReps ?? set.plannedReps ?? '', 'e.g. 10'));
+        dynWrap.appendChild(formField('RIGHT · WEIGHT (LB)', 'number', 'weightR', set.actualWeightLbR ?? set.actualWeightLb ?? set.plannedWeightLb ?? '', 'e.g. 20', { step: '0.5' }));
+      } else {
+        dynWrap.appendChild(formField('REPS', 'number', 'reps', set.actualReps ?? set.plannedReps ?? '', 'e.g. 10'));
+        dynWrap.appendChild(formField('WEIGHT (LB)', 'number', 'weight', set.actualWeightLb ?? set.plannedWeightLb ?? '', 'e.g. 20', { step: '0.5' }));
+      }
+      wireUpHintUpdaters();
     }
-    form.querySelector('[name="reps"]').addEventListener('input', updateHint);
-    form.querySelector('[name="weight"]').addEventListener('input', updateHint);
-    updateHint();
+    function wireUpHintUpdaters() {
+      const t = form.querySelector('[name="setType"]').value;
+      function updateHint() {
+        let r, w;
+        if (t === 'single_side') {
+          const rL = Number(dynWrap.querySelector('[name="repsL"]')?.value) || 0;
+          const rR = Number(dynWrap.querySelector('[name="repsR"]')?.value) || 0;
+          const wL = Number(dynWrap.querySelector('[name="weightL"]')?.value) || 0;
+          const wR = Number(dynWrap.querySelector('[name="weightR"]')?.value) || 0;
+          r = Math.max(rL, rR); w = Math.max(wL, wR);
+        } else {
+          r = Number(dynWrap.querySelector('[name="reps"]')?.value);
+          w = Number(dynWrap.querySelector('[name="weight"]')?.value);
+        }
+        const est = est1RM(w, r);
+        oneRmHint.textContent = est ? `EST 1RM · ${est} LB` : '';
+      }
+      dynWrap.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', updateHint));
+      updateHint();
+    }
+    form.querySelector('[name="setType"]').addEventListener('change', renderFields);
+    renderFields();
   }
 
   const logBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
@@ -542,12 +575,31 @@ async function openSetEntry(session, current, exIdx, set, setIdx) {
       set.type = form.querySelector('[name="setType"]')?.value || set.type || 'normal';
       set.notes = form.querySelector('[name="setNotes"]')?.value.trim() || '';
     } else {
-      const r = form.querySelector('[name="reps"]').value;
-      const w = form.querySelector('[name="weight"]').value;
-      set.actualReps = r ? Number(r) : null;
-      set.actualWeightLb = w ? Number(w) : null;
-      set.type = form.querySelector('[name="setType"]')?.value || set.type || 'normal';
+      const t = form.querySelector('[name="setType"]')?.value || 'normal';
+      set.type = t;
       set.notes = form.querySelector('[name="setNotes"]')?.value.trim() || '';
+      if (t === 'single_side') {
+        const repsL = form.querySelector('[name="repsL"]').value;
+        const repsR = form.querySelector('[name="repsR"]').value;
+        const weightL = form.querySelector('[name="weightL"]').value;
+        const weightR = form.querySelector('[name="weightR"]').value;
+        set.actualRepsL = repsL ? Number(repsL) : null;
+        set.actualRepsR = repsR ? Number(repsR) : null;
+        set.actualWeightLbL = weightL ? Number(weightL) : null;
+        set.actualWeightLbR = weightR ? Number(weightR) : null;
+        // Also populate the standard fields with the max side, so PR detection
+        // and progression charts keep working without special-casing.
+        set.actualReps     = Math.max(set.actualRepsL ?? 0, set.actualRepsR ?? 0) || null;
+        set.actualWeightLb = Math.max(set.actualWeightLbL ?? 0, set.actualWeightLbR ?? 0) || null;
+      } else {
+        const r = form.querySelector('[name="reps"]').value;
+        const w = form.querySelector('[name="weight"]').value;
+        set.actualReps = r ? Number(r) : null;
+        set.actualWeightLb = w ? Number(w) : null;
+        // Clear per-side fields when returning to normal mode
+        set.actualRepsL = null; set.actualRepsR = null;
+        set.actualWeightLbL = null; set.actualWeightLbR = null;
+      }
     }
     set.done = true;
     set.doneAt = new Date().toISOString();
@@ -583,10 +635,11 @@ async function openSetEntry(session, current, exIdx, set, setIdx) {
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 const SET_TYPES = [
-  { value: 'normal',  label: 'NORMAL' },
-  { value: 'warmup',  label: 'WARM-UP' },
-  { value: 'failure', label: 'TO FAILURE' },
-  { value: 'dropset', label: 'DROPSET' },
+  { value: 'normal',      label: 'NORMAL' },
+  { value: 'warmup',      label: 'WARM-UP' },
+  { value: 'failure',     label: 'TO FAILURE' },
+  { value: 'dropset',     label: 'DROPSET' },
+  { value: 'single_side', label: 'SINGLE SIDE (L / R)' },
 ];
 
 function startRestTimer(seconds) {
@@ -658,7 +711,7 @@ async function onFinishClick(session) {
   clearInterval(elapsedTimerId); clearInterval(restTimerId);
   window.location.hash = `#/session/${session.id}/summary`;
 }
-async function refresh() { const m = await import('./app.js?v=18'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=19'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {

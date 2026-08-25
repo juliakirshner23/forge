@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=18';
+import * as db from './db.js?v=19';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
   DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=18';
+} from './ui.js?v=19';
 
 const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
 
