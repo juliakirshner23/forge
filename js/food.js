@@ -6,11 +6,11 @@
 // MET × body weight × duration; can be manually overridden.
 // =========================================================
 
-import * as db from './db.js?v=20';
+import * as db from './db.js?v=22';
 import {
   el, section, formField, formSelect,
   toast, confirmModal, uid, esc, todayIso, formatDate, progressBar, progressColor,
-} from './ui.js?v=20';
+} from './ui.js?v=22';
 
 // ---------- Constants ----------
 
@@ -182,9 +182,6 @@ export async function renderFoodDay(container, params) {
   // Exercise override
   container.appendChild(section('EXERCISE CALORIES', renderExerciseAdjuster(dateIso, exKcal, isOverride)));
 
-  // Chart
-  container.appendChild(section('TREND', await renderCalorieChart(exerciseIndex, bodyWeightLb)));
-
   // Manage foods link
   container.appendChild(section('LIBRARY', el('div', { class: 'action-stack' }, [
     el('a', { class: 'btn btn-outline', href: '#/food-new' }, [
@@ -246,11 +243,12 @@ function renderAddFoodRow(mealKey, dateIso, foods) {
   function renderSuggestions(query) {
     suggestions.innerHTML = '';
     const q = (query || '').trim().toLowerCase();
-    let list;
-    if (q.length === 0) list = sorted.slice(0, 6); // recents
-    else list = sorted.filter((f) => (f.name || '').toLowerCase().includes(q)).slice(0, 8);
+    // Only show chips when the user is actively searching; hide by default
+    // to keep the meal sections compact.
+    if (q.length === 0) return;
+    const list = sorted.filter((f) => (f.name || '').toLowerCase().includes(q)).slice(0, 8);
     if (list.length === 0) {
-      suggestions.appendChild(el('div', { class: 'add-food-empty', text: q ? 'NO MATCH · SAVE AS NEW FOOD' : 'NO FOODS YET' }));
+      suggestions.appendChild(el('div', { class: 'add-food-empty', text: 'NO MATCH · TAP ADD TO SAVE AS NEW FOOD' }));
       return;
     }
     for (const f of list) {
@@ -273,6 +271,13 @@ function renderAddFoodRow(mealKey, dateIso, foods) {
   searchInput.addEventListener('input', () => {
     selectedFoodId = null;
     renderSuggestions(searchInput.value);
+  });
+  searchInput.addEventListener('focus', () => {
+    if (searchInput.value.trim()) renderSuggestions(searchInput.value);
+  });
+  searchInput.addEventListener('blur', () => {
+    // Delay so a tap on a suggestion chip registers before we clear
+    setTimeout(() => { if (document.activeElement !== searchInput) suggestions.innerHTML = ''; }, 150);
   });
 
   const addBtn = el('button', {
@@ -665,6 +670,6 @@ function prettyDate(iso) {
 // ---------- Refresh helper ----------
 
 async function refresh() {
-  const m = await import('./app.js?v=20');
+  const m = await import('./app.js?v=22');
   m.refresh && m.refresh();
 }

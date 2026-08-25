@@ -1,7 +1,7 @@
 // FORGE stats: weight trend + exercise progression + PRs + analytics (v0.6.0)
-import * as db from './db.js?v=20';
-import { el, section, formatDate } from './ui.js?v=20';
-import { est1RM, muscleGroupVolume, cardioStrengthSplit, adherenceInWindow, volumeTrend } from './progression.js?v=20';
+import * as db from './db.js?v=22';
+import { el, section, formatDate } from './ui.js?v=22';
+import { est1RM, strengthFocusShare, volumeTrend } from './progression.js?v=22';
 
 const RANGES = [
   { label: '30D', days: 30 },
@@ -21,27 +21,11 @@ export async function renderStatsPage(container, params) {
     el('h1', { text: 'PROGRESS' }),
   ]));
 
-  // Adherence over 3 time windows
-  const adherenceStrip = el('div', { class: 'stat-strip' });
-  for (const win of [7, 30, 90]) {
-    const pct = adherenceInWindow(routines, completedSessions, win);
-    adherenceStrip.appendChild(el('div', { class: 'stat-mini' }, [
-      el('span', { class: 'stat-mini-label', text: `${win}D` }),
-      el('span', { class: 'stat-mini-value', text: pct != null ? `${pct}%` : '—' }),
-      el('span', { class: 'stat-mini-sub', text: 'ADHERENCE' }),
-    ]));
-  }
-  container.appendChild(section('ADHERENCE', adherenceStrip));
-
-  // Cardio vs Strength time split
-  const split = cardioStrengthSplit(completedSessions, exercises, 30);
-  container.appendChild(section('CARDIO vs STRENGTH · LAST 30 DAYS',
-    renderSplitBar(split.cardioMin, split.strengthMin)));
-
-  // Muscle group balance
-  const musc = muscleGroupVolume(completedSessions, exercises, 30);
-  if (musc.size > 0) {
-    container.appendChild(section('MUSCLE / CATEGORY BALANCE · LAST 30 DAYS', renderMuscleBars(musc)));
+  // Strength focus share (last 30 days)
+  const share = strengthFocusShare(completedSessions, exercises, 30);
+  if (share) {
+    container.appendChild(section('STRENGTH FOCUS · LAST 30 DAYS · % OF EXERCISES',
+      renderFocusBars(share)));
   }
 
   // Body Measurements: individual chart per measurement, with range chips
@@ -107,8 +91,8 @@ export async function renderStatsPage(container, params) {
     ])));
   }
 
-  // Volume this week
-  container.appendChild(section('WEEKLY VOLUME', weeklyVolumeCards(completedSessions)));
+  // Calorie trend chart (moved from FOOD in v0.7.8)
+  container.appendChild(await renderCalorieTrendSection());
 
   // PRs list
   const allPRs = [];
@@ -237,33 +221,19 @@ async function renderBodyMeasurementCharts(measurements) {
   return section('BODY MEASUREMENTS', wrap);
 }
 
-function renderSplitBar(cardioMin, strengthMin) {
-  const total = cardioMin + strengthMin || 1;
-  const cardioPct = Math.round((cardioMin / total) * 100);
-  const strengthPct = 100 - cardioPct;
-  return el('div', { class: 'split-bar-wrap' }, [
-    el('div', { class: 'split-bar-labels' }, [
-      el('span', { class: 'split-bar-label split-bar-cardio', text: `CARDIO · ${cardioMin} MIN · ${cardioPct}%` }),
-      el('span', { class: 'split-bar-label split-bar-strength', text: `STRENGTH · ${strengthMin} MIN · ${strengthPct}%` }),
-    ]),
-    el('div', { class: 'split-bar' }, [
-      el('div', { class: 'split-bar-fill split-bar-fill-cardio', style: `width:${cardioPct}%;` }),
-    ]),
-  ]);
-}
-
-function renderMuscleBars(map) {
-  const entries = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-  const max = entries[0][1] || 1;
+function renderFocusBars(rows) {
   const wrap = el('div', { class: 'muscle-bars' });
-  for (const [muscle, vol] of entries) {
-    const pct = Math.round((vol / max) * 100);
+  const colors = { push: 'var(--red)', pull: 'var(--blue-hi)', legs: 'var(--green)', core: 'var(--amber)' };
+  const labels = { push: 'PUSH', pull: 'PULL', legs: 'LEGS', core: 'CORE' };
+  const max = Math.max(...rows.map((r) => r.pct), 1);
+  for (const r of rows) {
+    const pctOfMax = (r.pct / max) * 100;
     wrap.appendChild(el('div', { class: 'muscle-bar-row' }, [
-      el('span', { class: 'muscle-bar-label', text: muscle.toUpperCase() }),
+      el('span', { class: 'muscle-bar-label', text: labels[r.focus] }),
       el('div', { class: 'muscle-bar' }, [
-        el('div', { class: 'muscle-bar-fill', style: `width:${pct}%;` }),
+        el('div', { class: 'muscle-bar-fill', style: `width:${pctOfMax}%;background:${colors[r.focus]};` }),
       ]),
-      el('span', { class: 'muscle-bar-val', text: Math.round(vol) }),
+      el('span', { class: 'muscle-bar-val', text: `${r.pct}% · ${r.count}` }),
     ]));
   }
   return wrap;
@@ -339,5 +309,150 @@ function renderLineChart(data, { yLabel } = {}) {
   wrap.innerHTML = svg;
   const caption = el('div', { class: 'chart-caption', text: `${data[data.length - 1].value} ${yLabel || ''}  ·  LATEST  (${data.length} POINTS)` });
   wrap.appendChild(caption);
+  return wrap;
+}
+
+// v0.7.8 · Calorie trend chart (relocated from FOOD tab)
+async function renderCalorieTrendSection() {
+  const [meals, sessions, exercises, measurements, adjustments] = await Promise.all([
+    db.getAll('mealLog'), db.getAll('sessions'), db.getAll('exercises'),
+    db.getAll('bodyMeasurements'), db.getAll('dailyCalorieAdjustments'),
+  ]);
+  const bodyLb = (() => {
+    const w = measurements.filter((m) => m.weight != null).sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+    return w?.weight ?? 160;
+  })();
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const MET_BY_NAME_HINT = [
+    { m: 'stairmaster', met: 9.0 }, { m: 'stair', met: 8.0 },
+    { m: 'incline walk', met: 8.0 }, { m: 'treadmill', met: 6.0 },
+    { m: 'cycling', met: 7.0 }, { m: 'bike', met: 7.0 },
+    { m: 'elliptical', met: 5.0 }, { m: 'walk', met: 3.8 },
+    { m: 'run', met: 9.0 }, { m: 'row', met: 7.0 },
+  ];
+  const MET_BY_CATEGORY = { strength: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
+  const KG_PER_LB = 0.453592;
+  const kg = bodyLb * KG_PER_LB;
+  function metFor(libEx) {
+    if (!libEx) return MET_BY_CATEGORY.strength;
+    const n = (libEx.name || '').toLowerCase();
+    for (const h of MET_BY_NAME_HINT) if (n.includes(h.m)) return h.met;
+    return MET_BY_CATEGORY[libEx.category] || MET_BY_CATEGORY.strength;
+  }
+  const adjMap = new Map(adjustments.map((a) => [a.date, a]));
+
+  const wrap = el('div', {});
+  const rangeRow = el('div', { class: 'chart-range-row' });
+  const chartWrap = el('div', {});
+  let range = 7;
+  for (const r of [7, 30, 90]) {
+    const btn = el('button', {
+      class: 'chart-range-btn' + (r === range ? ' chart-range-btn-active' : ''),
+      text: `${r}D`,
+      onclick: () => {
+        range = r;
+        rangeRow.querySelectorAll('.chart-range-btn').forEach((b) => b.classList.remove('chart-range-btn-active'));
+        btn.classList.add('chart-range-btn-active');
+        draw();
+      },
+    });
+    rangeRow.appendChild(btn);
+  }
+
+  function shiftDate(iso, delta) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    return d.toISOString().slice(0, 10);
+  }
+  function todayIsoLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function buildSeries(days) {
+    const today = todayIsoLocal();
+    const dates = [];
+    for (let i = days - 1; i >= 0; i--) dates.push(shiftDate(today, -i));
+    const foodByDate = new Map();
+    for (const m of meals) foodByDate.set(m.date, (foodByDate.get(m.date) || 0) + (m.calories || 0));
+    const sessionsByDate = new Map();
+    for (const s of sessions) {
+      if (s.isActive || !s.completedAt) continue;
+      const d = s.completedAt.slice(0, 10);
+      if (!sessionsByDate.has(d)) sessionsByDate.set(d, []);
+      sessionsByDate.get(d).push(s);
+    }
+    return dates.map((d) => {
+      const food = foodByDate.get(d) || 0;
+      let ex = 0;
+      const adj = adjMap.get(d);
+      if (adj && adj.exerciseCaloriesOverride != null) ex = adj.exerciseCaloriesOverride;
+      else {
+        for (const s of (sessionsByDate.get(d) || [])) {
+          if (!s.startedAt) continue;
+          const hours = (new Date(s.completedAt) - new Date(s.startedAt)) / 3600000;
+          if (hours <= 0 || hours > 3) continue; // guard
+          const exs = s.exercises || [];
+          if (exs.length === 0) continue;
+          const avgMet = exs.reduce((n, x) => n + metFor(exById.get(x.exerciseId)), 0) / exs.length;
+          ex += Math.round(avgMet * kg * hours);
+        }
+      }
+      return { date: d, food, exercise: ex, net: food - ex };
+    });
+  }
+  function draw() {
+    chartWrap.innerHTML = '';
+    const rows = buildSeries(range);
+    chartWrap.appendChild(renderTripleLine(rows));
+  }
+  wrap.appendChild(rangeRow);
+  wrap.appendChild(chartWrap);
+  draw();
+  return section('CALORIE TREND · FOOD / EXERCISE / NET', wrap);
+}
+
+function renderTripleLine(rows) {
+  if (rows.length === 0) return el('div', { class: 'empty-note', text: 'NO DATA' });
+  const w = 340, h = 200, padL = 44, padR = 12, padT = 24, padB = 32;
+  const allVals = rows.flatMap((r) => [r.food, r.exercise, r.net]);
+  let minV = Math.min(...allVals, 0), maxV = Math.max(...allVals, 100);
+  const range = maxV - minV || 1;
+  minV -= range * 0.08; maxV += range * 0.08;
+  const yRange = maxV - minV || 1;
+  const xStep = rows.length > 1 ? (w - padL - padR) / (rows.length - 1) : 0;
+  function pts(key) {
+    return rows.map((r, i) => ({
+      x: padL + i * xStep,
+      y: padT + (h - padT - padB) * (1 - (r[key] - minV) / yRange),
+      v: r[key], date: r.date,
+    }));
+  }
+  function line(points, color, dashed) {
+    return `<polyline fill="none" stroke="${color}" stroke-width="2" ${dashed ? 'stroke-dasharray="3 3"' : ''} points="${points.map((p) => `${p.x},${p.y}`).join(' ')}"/>` +
+      points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="${color}"/>`).join('');
+  }
+  const foodPts = pts('food'), exPts = pts('exercise'), netPts = pts('net');
+  const svg = `<svg viewBox="0 0 ${w} ${h}" class="line-chart" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${padL}" y="${padT}" width="${w - padL - padR}" height="${h - padT - padB}" fill="none" stroke="#292524"/>
+    ${[0, 0.25, 0.5, 0.75, 1].map((t) => {
+      const y = padT + (h - padT - padB) * t;
+      const val = Math.round(maxV - yRange * t);
+      return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#171717" stroke-width="1"/>
+              <text x="${padL - 6}" y="${y + 3}" fill="#57534e" font-size="9" text-anchor="end" font-family="monospace">${val}</text>`;
+    }).join('')}
+    ${line(foodPts, '#f59e0b', false)}
+    ${line(exPts, '#a3a3a3', true)}
+    ${line(netPts, '#fafafa', false)}
+    <text x="${padL}" y="${padT - 8}" fill="#f59e0b" font-size="9" font-weight="900" font-family="monospace">■ FOOD</text>
+    <text x="${padL + 66}" y="${padT - 8}" fill="#a3a3a3" font-size="9" font-weight="900" font-family="monospace">■ EXERCISE</text>
+    <text x="${padL + 152}" y="${padT - 8}" fill="#fafafa" font-size="9" font-weight="900" font-family="monospace">■ NET</text>
+    <text x="${padL}" y="${h - 8}" fill="#57534e" font-size="9" font-family="monospace">${rows[0].date}</text>
+    <text x="${w - padR}" y="${h - 8}" fill="#57534e" font-size="9" text-anchor="end" font-family="monospace">${rows[rows.length - 1].date}</text>
+  </svg>`;
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-wrap';
+  wrap.innerHTML = svg;
+  const last = rows[rows.length - 1];
+  wrap.appendChild(el('div', { class: 'chart-caption', text: `TODAY · FOOD ${last.food} · EX ${last.exercise} · NET ${last.net}` }));
   return wrap;
 }

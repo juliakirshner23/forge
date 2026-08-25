@@ -240,12 +240,15 @@ export function muscleGroupVolume(sessions, exercises, windowDays = 30) {
 // --- Cardio vs Strength time split ---
 export function cardioStrengthSplit(sessions, exercises, windowDays = 30) {
   const cutoff = Date.now() - windowDays * 86400000;
+  const MAX_SESSION_SEC = 3 * 3600; // guard: cap any single session at 3h
   const exById = new Map(exercises.map((e) => [e.id, e]));
   let cardioSec = 0, strengthSec = 0;
   for (const s of sessions) {
     if (s.isActive || !s.completedAt || !s.startedAt) continue;
     if (new Date(s.completedAt).getTime() < cutoff) continue;
-    const total = (new Date(s.completedAt) - new Date(s.startedAt)) / 1000;
+    let total = (new Date(s.completedAt) - new Date(s.startedAt)) / 1000;
+    if (!Number.isFinite(total) || total <= 0) continue;
+    if (total > MAX_SESSION_SEC) total = MAX_SESSION_SEC;
     // Split by exercise categories present, weighted by count
     let c = 0, o = 0;
     for (const ex of (s.exercises || [])) {
@@ -278,4 +281,30 @@ export function adherenceInWindow(routines, sessions, days) {
   }
   if (scheduled === 0) return null;
   return Math.round((completed / scheduled) * 100);
+}
+
+// v0.7.9 · Strength-focus share
+// Percentage of push / pull / legs / core exercises done in the window
+// (out of all strength-family exercises). Ignores cardio, rehab, mobility.
+export function strengthFocusShare(sessions, exercises, windowDays = 30) {
+  const cutoff = Date.now() - windowDays * 86400000;
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const KEYS = ['push', 'pull', 'legs', 'core'];
+  const counts = { push: 0, pull: 0, legs: 0, core: 0 };
+  let total = 0;
+  for (const s of sessions) {
+    if (s.isActive || !s.completedAt) continue;
+    if (new Date(s.completedAt).getTime() < cutoff) continue;
+    for (const ex of (s.exercises || [])) {
+      const doneSets = (ex.sets || []).filter((st) => st.done);
+      if (doneSets.length === 0) continue;
+      const libEx = exById.get(ex.exerciseId);
+      const focus = libEx?.focus;
+      if (!KEYS.includes(focus)) continue;
+      counts[focus]++;
+      total++;
+    }
+  }
+  if (total === 0) return null;
+  return KEYS.map((k) => ({ focus: k, count: counts[k], pct: Math.round((counts[k] / total) * 100) }));
 }
