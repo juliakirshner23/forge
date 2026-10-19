@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=22';
+import * as db from './db.js?v=23';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
   DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=22';
+} from './ui.js?v=23';
 
 const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
 
@@ -60,14 +60,15 @@ export async function renderRoutineEditor(container, existing) {
 
   // Exercises editor
   const exSection = el('div', {});
+  const exLabel = el('div', { class: 'section-label', id: 'ex-section-label' });
   container.appendChild(el('section', { class: 'section' }, [
-    el('div', { class: 'section-label', id: 'ex-section-label' }),
+    exLabel,
     exSection,
   ]));
 
   function renderExercises() {
     exSection.innerHTML = '';
-    document.getElementById('ex-section-label').textContent = `EXERCISES  ·  ${model.exercises.length}`;
+    exLabel.textContent = `EXERCISES  ·  ${model.exercises.length}`;
     if (model.exercises.length === 0) {
       exSection.appendChild(el('div', { class: 'empty-note', text: 'NO EXERCISES YET  ·  TAP + ADD BELOW' }));
     } else {
@@ -79,7 +80,7 @@ export async function renderRoutineEditor(container, existing) {
   renderExercises();
 
   container.appendChild(section('ADD',
-    el('button', { class: 'btn btn-primary', onclick: () => openExercisePicker(allExercises, model, renderExercises) }, [
+    el('button', { class: 'btn btn-primary', onclick: () => addExerciseToRoutine(model, renderExercises, exById) }, [
       el('span', { class: 'btn-title', text: '+ ADD EXERCISE FROM LIBRARY' }),
       el('span', { class: 'btn-sub', text: 'PICK ONE OR MORE FROM YOUR EXERCISE LIBRARY' }),
     ])
@@ -287,26 +288,31 @@ function removeSet(ex, rerender) {
   ex.sets.pop(); rerender();
 }
 
-function openExercisePicker(allExercises, model, rerender) {
-  const sorted = [...allExercises].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  const items = sorted.map((ex) => ({ label: `${(ex.category || '?').slice(0,1).toUpperCase()} · ${ex.name}`, id: ex.id, ex }));
-  openPicker('ADD EXERCISE', items, (item) => {
-    const ex = item.ex;
-    const isCardio = ex.category === 'cardio';
-    model.exercises.push({
-      exerciseId: ex.id,
-      exerciseName: ex.name,
-      order: model.exercises.length,
-      restBetweenSets: null,
-      supersetGroupId: null,
-      notes: '',
-      sets: isCardio
-        ? [{ type: 'normal', durationSec: 1500, reps: null, weightLb: null }]
-        : [{ type: 'normal', reps: 10, weightLb: null, durationSec: null }],
-    });
+async function addExerciseToRoutine(model, rerender, exById) {
+  const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+  openExercisePicker('ADD EXERCISE', (ex) => {
+    exById.set(ex.id, ex);
+    model.exercises.push(routineEntryFor(ex, model.exercises.length));
     rerender();
     toast(`ADDED · ${ex.name}`, 'ok');
   });
+}
+
+// Shape of one exercise inside a routine. Shared with the active workout's
+// "save to routine" option.
+export function routineEntryFor(ex, order) {
+  const isCardio = ex.category === 'cardio';
+  return {
+    exerciseId: ex.id,
+    exerciseName: ex.name,
+    order,
+    restBetweenSets: null,
+    supersetGroupId: null,
+    notes: '',
+    sets: isCardio
+      ? [{ type: 'normal', durationSec: 1500, reps: null, weightLb: null }]
+      : [{ type: 'normal', reps: 10, weightLb: null, durationSec: null }],
+  };
 }
 
 function onDeleteRoutine(routine) {

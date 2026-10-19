@@ -1,14 +1,22 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=22';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=22';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=22';
+import * as db from './db.js?v=23';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=23';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=23';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=22';
+} from './ui.js?v=23';
+import { exerciseSuggestion } from './progression.js?v=23';
+
+function suggestionNoteEl(sg) {
+  return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
+    el('span', { class: 'ex-suggest-kind', text: sg.label }),
+    el('span', { class: 'ex-suggest-text', text: sg.text }),
+  ]);
+}
 
 // ---------- HOME ----------
 export async function renderHome(container) {
@@ -61,9 +69,6 @@ export async function renderHome(container) {
 
   container.appendChild(section('THIS WEEK', weeklyAdherence(completedSessions, routines)));
 
-  // v0.6.0 · progression prompts + weekly digest
-  container.appendChild(await renderProgressionSection(completedSessions));
-
   container.appendChild(await caloriesCardSection());
   container.appendChild(await stepsCardSection());
 }
@@ -79,55 +84,6 @@ async function renderRecentPrsCard(session) {
     ])
   ));
   return section('◆ NEW PERSONAL BESTS', el('div', { class: 'pr-card' }, [list]));
-}
-
-async function renderProgressionSection(sessions) {
-  const { suggestProgression, detectPlateau, detectRotation } = await import('./progression.js?v=22');
-  const sensitivity = await db.getSetting('promptSensitivity', 'balanced');
-  const sessionsNewestFirst = sessions.slice().sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
-  // Don't fire any suggestions until the user has enough logged history.
-  // "Enough" = at least 5 completed sessions and 14+ days since the earliest one.
-  if (sessionsNewestFirst.length < 5) return el('div', {});
-  const earliest = sessionsNewestFirst[sessionsNewestFirst.length - 1];
-  const daysSinceFirst = (Date.now() - new Date(earliest.completedAt).getTime()) / 86400000;
-  if (daysSinceFirst < 14) return el('div', {});
-  // Gather unique exerciseIds with recent activity
-  const seen = new Set();
-  for (const s of sessionsNewestFirst.slice(0, 20)) {
-    for (const ex of (s.exercises || [])) if (ex.exerciseName) seen.add(ex.exerciseId);
-  }
-  const prompts = [];
-  const seenIds = [...seen];
-  for (const id of seenIds) {
-    const ex = sessionsNewestFirst.find((s) => (s.exercises || []).some((e) => e.exerciseId === id))
-      ?.exercises.find((e) => e.exerciseId === id);
-    if (!ex) continue;
-    const prog = suggestProgression(id, sessionsNewestFirst, sensitivity);
-    if (prog) {
-      prompts.push({ kind: 'increase', name: ex.exerciseName, text: `TRY ${prog.target} LB NEXT · ${prog.reason}` });
-      continue;
-    }
-    const plateau = detectPlateau(id, sessionsNewestFirst, 4);
-    if (plateau && prompts.filter((p) => p.kind === 'plateau').length < 2) {
-      prompts.push({ kind: 'plateau', name: ex.exerciseName, text: `PLATEAU · NO PR IN ${plateau.weeks} WEEKS AT ${plateau.maxWeight} LB. CONSIDER DELOAD OR SWAP.` });
-      continue;
-    }
-    const rot = detectRotation(id, sessionsNewestFirst, 8);
-    if (rot && prompts.filter((p) => p.kind === 'rotation').length < 2) {
-      prompts.push({ kind: 'rotation', name: ex.exerciseName, text: `${rot.weeksInARow} WEEKS ON THIS EXERCISE. TRY A VARIATION.` });
-    }
-  }
-  if (prompts.length === 0) {
-    return el('div', {});
-  }
-  const list = el('div', { class: 'prompt-stack' }, prompts.slice(0, 4).map((p) =>
-    el('div', { class: `prompt-card prompt-${p.kind}` }, [
-      el('div', { class: 'prompt-kind', text: p.kind === 'increase' ? '↑ PROGRESSION' : p.kind === 'plateau' ? '◆ PLATEAU' : '◇ ROTATION' }),
-      el('div', { class: 'prompt-name', text: p.name }),
-      el('div', { class: 'prompt-text', text: p.text }),
-    ])
-  ));
-  return section('SUGGESTIONS', list);
 }
 
 async function caloriesCardSection() {
@@ -280,13 +236,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=22'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=23'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=22');
+    const { toast } = await import('./ui.js?v=23');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -500,13 +456,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=22');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=23');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=22');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=23');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -536,7 +492,11 @@ async function renderRoutineDetail(container, routine) {
     const list = el('div', { class: 'exercise-list' });
     exercises.forEach((ex, idx) => {
       const libEx = exById.get(ex.exerciseId);
-      list.appendChild(exerciseRow(ex, idx, libEx?.category || 'strength', libEx));
+      const row = exerciseRow(ex, idx, libEx?.category || 'strength', libEx);
+      list.appendChild(row);
+      exerciseSuggestion(ex.exerciseId).then((sg) => {
+        if (sg) row.querySelector('.exercise-main')?.appendChild(suggestionNoteEl(sg));
+      });
     });
     container.appendChild(section(`EXERCISES  ·  ${exercises.length}`, list));
   }
@@ -557,7 +517,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=22');
+  const { startSession } = await import('./workout.js?v=23');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -649,9 +609,18 @@ export async function renderLibrary(container) {
   container.appendChild(el('section', { class: 'section' }, [listWrap]));
   searchInput.addEventListener('input', () => { searchQuery = searchInput.value.trim().toLowerCase(); updateList(); });
 
-  container.appendChild(section('ADD', el('a', { class: 'btn btn-primary', href: '#/exercise/new' }, [
-    el('span', { class: 'btn-title', text: '+ CREATE CUSTOM EXERCISE' }),
-    el('span', { class: 'btn-sub', text: 'MAKES A NEW EXERCISE YOU CAN USE IN ROUTINES' }),
+  container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
+    el('button', { class: 'btn btn-primary', onclick: async () => {
+      const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+      openExercisePicker('ADD FROM CATALOG', (ex) => { window.location.hash = `#/exercise/${ex.id}`; }, { startTab: 'catalog' });
+    } }, [
+      el('span', { class: 'btn-title', text: '+ ADD FROM CATALOG' }),
+      el('span', { class: 'btn-sub', text: '876 EXERCISES TO CHOOSE FROM' }),
+    ]),
+    el('a', { class: 'btn btn-outline', href: '#/exercise/new' }, [
+      el('span', { class: 'btn-title', text: '+ CREATE CUSTOM EXERCISE' }),
+      el('span', { class: 'btn-sub', text: 'MAKES A NEW EXERCISE YOU CAN USE IN ROUTINES' }),
+    ]),
   ])));
 
   function updateList() {
@@ -710,7 +679,7 @@ async function renderExerciseDetail(container, ex) {
   ]));
 
   container.appendChild(el('div', { class: 'tag-row', style: 'margin: 0 20px 20px;' }, [
-    ex.isCustom ? el('span', { class: 'tag tag-neutral', text: 'CUSTOM' }) : el('span', { class: 'tag tag-neutral', text: 'FROM HEVY' }),
+    el('span', { class: 'tag tag-neutral', text: ex.isCustom ? 'CUSTOM' : ex.source === 'catalog' ? 'FROM CATALOG' : 'FROM HEVY' }),
     (ex.constraintFlags && ex.constraintFlags.length > 0)
       ? el('span', { class: 'tag tag-flag', text: '⚑ FLAGGED' })
       : el('span', { class: 'tag tag-safe', text: '◉ PT SAFE' }),
@@ -724,6 +693,9 @@ async function renderExerciseDetail(container, ex) {
   container.appendChild(section('METADATA', metaCard));
 
   if (ex.notes && ex.notes.trim()) container.appendChild(section('NOTES', el('div', { class: 'note-block', text: ex.notes })));
+  if (ex.instructions && ex.instructions.length > 0) {
+    container.appendChild(section('HOW TO', el('ol', { class: 'howto-list' }, ex.instructions.map((t) => el('li', { text: t })))));
+  }
   container.appendChild(section('CONSTRAINT FLAGS', flagsEditor(ex)));
 
   if (uses.length > 0) {
@@ -885,7 +857,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=22');
+  const { renderStatsPage } = await import('./stats.js?v=23');
   return renderStatsPage(container, params);
 }
 
@@ -909,7 +881,6 @@ export async function renderMe(container) {
     navRow('BODY METRICS', 'LOG WEIGHT + MEASUREMENTS', '#/body'),
     navRow('GOALS', 'INCA TRAIL · WEIGHT · PUSH-UPS · CLEARANCE', '#/goals'),
     navRow('SETTINGS', 'UNITS · STRIDE · CONSTRAINTS · BACKUP', '#/settings'),
-    navRow('HISTORY', 'ALL PAST SESSIONS', '#/history'),
   ]);
   container.appendChild(section('QUICK ACCESS', links));
 
@@ -988,7 +959,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=22'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=23'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

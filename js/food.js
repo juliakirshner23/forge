@@ -6,11 +6,11 @@
 // MET × body weight × duration; can be manually overridden.
 // =========================================================
 
-import * as db from './db.js?v=22';
+import * as db from './db.js?v=23';
 import {
   el, section, formField, formSelect,
   toast, confirmModal, uid, esc, todayIso, formatDate, progressBar, progressColor,
-} from './ui.js?v=22';
+} from './ui.js?v=23';
 
 // ---------- Constants ----------
 
@@ -162,6 +162,9 @@ export async function renderFoodDay(container, params) {
     foodTile('NET', net, 'KCAL', net <= netGoal ? 'var(--green)' : 'var(--red)'),
   ])));
 
+  // v0.8.0 · One quick-add bar for every meal
+  container.appendChild(section('ADD FOOD', renderQuickAdd(dateIso, foods)));
+
   // Progress bars
   const foodPct = budget > 0 ? (foodKcal / budget) * 100 : 0;
   const netPct = netGoal > 0 ? (net / netGoal) * 100 : 0;
@@ -210,9 +213,6 @@ function renderMealBlock(meal, entries, subtotal, dateIso, foods) {
     el('span', { class: 'meal-subtotal', text: `${subtotal} KCAL` }),
   ]));
 
-  // Add-food row (inline)
-  block.appendChild(renderAddFoodRow(meal.key, dateIso, foods));
-
   // Entries list
   if (entries.length === 0) {
     block.appendChild(el('div', { class: 'meal-empty', text: 'NO ENTRIES' }));
@@ -224,84 +224,109 @@ function renderMealBlock(meal, entries, subtotal, dateIso, foods) {
   return block;
 }
 
-function renderAddFoodRow(mealKey, dateIso, foods) {
-  // Sort by last_used desc so recents float up
-  const sorted = [...foods].sort((a, b) => (b.lastUsedAt || '').localeCompare(a.lastUsedAt || ''));
+// Remembers the chosen meal across re-renders on the same day.
+let _quickMeal = null;
 
-  const wrap = el('div', { class: 'add-food-row' });
-  const searchInput = el('input', {
-    class: 'form-input add-food-search',
-    type: 'text', placeholder: 'SEARCH FOOD OR TYPE NEW...',
-  });
-  const qtyInput = el('input', {
-    class: 'form-input add-food-qty',
-    type: 'number', step: '0.1', placeholder: 'QTY', value: '1',
-  });
-  const suggestions = el('div', { class: 'add-food-suggestions' });
-  let selectedFoodId = null;
+function renderQuickAdd(dateIso, foods) {
+  if (!_quickMeal || _quickMeal.date !== dateIso) _quickMeal = { date: dateIso, meal: mealFromTimeOfDay() };
+  const wrap = el('div', { class: 'quick-add' });
 
-  function renderSuggestions(query) {
-    suggestions.innerHTML = '';
-    const q = (query || '').trim().toLowerCase();
-    // Only show chips when the user is actively searching; hide by default
-    // to keep the meal sections compact.
-    if (q.length === 0) return;
-    const list = sorted.filter((f) => (f.name || '').toLowerCase().includes(q)).slice(0, 8);
-    if (list.length === 0) {
-      suggestions.appendChild(el('div', { class: 'add-food-empty', text: 'NO MATCH · TAP ADD TO SAVE AS NEW FOOD' }));
+  // Meal selector
+  const mealRow = el('div', { class: 'quick-meals' });
+  const mealBtns = new Map();
+  for (const m of MEALS) {
+    const b = el('button', { class: 'quick-meal' + (m.key === _quickMeal.meal ? ' quick-meal-active' : ''), text: m.label });
+    b.addEventListener('click', () => {
+      _quickMeal.meal = m.key;
+      for (const [k, btn] of mealBtns) btn.classList.toggle('quick-meal-active', k === m.key);
+    });
+    mealBtns.set(m.key, b);
+    mealRow.appendChild(b);
+  }
+  wrap.appendChild(mealRow);
+
+  // Name + quantity
+  const nameIn = el('input', { class: 'form-input quick-name', type: 'text', placeholder: 'TYPE A FOOD...', autocomplete: 'off' });
+  const qtyIn = el('input', { class: 'form-input quick-qty', type: 'number', step: '0.1', min: '0', value: '1', 'aria-label': 'Servings' });
+  wrap.appendChild(el('div', { class: 'quick-inputs' }, [
+    nameIn,
+    el('label', { class: 'quick-qty-wrap' }, [ el('span', { class: 'quick-qty-label', text: 'SERVINGS' }), qtyIn ]),
+  ]));
+
+  const results = el('div', { class: 'quick-results' });
+  wrap.appendChild(results);
+
+  const qty = () => { const q = Number(qtyIn.value); return q > 0 ? q : 1; };
+  const log = (food) => logMeal(food, qty(), _quickMeal.meal, dateIso);
+  const byUse = [...foods].sort((a, b) => (b.useCount || 0) - (a.useCount || 0) || (b.lastUsedAt || '').localeCompare(a.lastUsedAt || ''));
+
+  let kcalIn = null;
+  async function addNew() {
+    const name = nameIn.value.trim();
+    const kcal = Number(kcalIn?.value);
+    if (!name) { toast('ENTER A FOOD NAME', 'error'); return; }
+    if (!kcalIn?.value || !Number.isFinite(kcal) || kcal < 0) { toast('ENTER CALORIES PER SERVING', 'error'); kcalIn?.focus(); return; }
+    const unitVal = results.querySelector('[name="quickUnit"]')?.value.trim() || '1 serving';
+    const food = {
+      id: uid('fd'), name, caloriesPerServing: Math.round(kcal), servingUnit: unitVal,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), lastUsedAt: null, useCount: 0,
+    };
+    try { await db.put('foods', food); await log(food); }
+    catch (err) { console.error(err); toast('SAVE FAILED · ' + err.message, 'error'); }
+  }
+
+  function foodButton(f, cls) {
+    return el('button', { class: cls, onclick: () => log(f) }, [
+      el('span', { class: `${cls}-name`, text: f.name }),
+      el('span', { class: `${cls}-cal`, text: `${f.caloriesPerServing} KCAL / ${f.servingUnit || '1 serving'}` }),
+    ]);
+  }
+
+  function render() {
+    results.innerHTML = '';
+    kcalIn = null;
+    const q = nameIn.value.trim().toLowerCase();
+    if (!q) {
+      const frequent = byUse.filter((f) => (f.useCount || 0) > 0).slice(0, 8);
+      if (frequent.length > 0) {
+        results.appendChild(el('div', { class: 'quick-hint', text: 'FREQUENT · TAP TO LOG' }));
+        results.appendChild(el('div', { class: 'quick-chips' }, frequent.map((f) => foodButton(f, 'quick-chip'))));
+      }
       return;
     }
-    for (const f of list) {
-      const chip = el('button', {
-        class: 'add-food-chip' + (selectedFoodId === f.id ? ' add-food-chip-selected' : ''),
-        onclick: () => {
-          selectedFoodId = f.id;
-          searchInput.value = f.name;
-          renderSuggestions(f.name);
-        },
-      }, [
-        el('span', { class: 'add-food-chip-name', text: f.name }),
-        el('span', { class: 'add-food-chip-cal', text: `${f.caloriesPerServing} KCAL / ${f.servingUnit}` }),
-      ]);
-      suggestions.appendChild(chip);
+    const words = q.split(/\s+/);
+    const matches = byUse.filter((f) => words.every((w) => (f.name || '').toLowerCase().includes(w))).slice(0, 8);
+    if (matches.length > 0) {
+      results.appendChild(el('div', { class: 'quick-hint', text: 'TAP TO LOG' }));
+      results.appendChild(el('div', { class: 'quick-list' }, matches.map((f) => foodButton(f, 'quick-row'))));
+    }
+    const exact = foods.some((f) => (f.name || '').toLowerCase() === q);
+    if (!exact) {
+      kcalIn = el('input', { class: 'form-input quick-kcal', type: 'number', min: '0', placeholder: 'KCAL', name: 'quickKcal', inputmode: 'numeric' });
+      const unitIn = el('input', { class: 'form-input quick-unit', type: 'text', placeholder: '1 serving', name: 'quickUnit' });
+      const addBtn = el('button', { class: 'btn btn-primary quick-add-btn', onclick: addNew }, [ el('span', { class: 'btn-title', text: 'ADD + LOG' }) ]);
+      kcalIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') addNew(); });
+      unitIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') addNew(); });
+      results.appendChild(el('div', { class: 'quick-new' }, [
+        el('div', { class: 'quick-hint', text: `NEW FOOD · "${nameIn.value.trim()}" · SAVED TO YOUR LIBRARY` }),
+        el('div', { class: 'quick-new-inputs' }, [
+          el('label', { class: 'quick-field' }, [ el('span', { class: 'quick-qty-label', text: 'KCAL PER SERVING' }), kcalIn ]),
+          el('label', { class: 'quick-field' }, [ el('span', { class: 'quick-qty-label', text: 'SERVING' }), unitIn ]),
+        ]),
+        addBtn,
+      ]));
     }
   }
-  renderSuggestions('');
 
-  searchInput.addEventListener('input', () => {
-    selectedFoodId = null;
-    renderSuggestions(searchInput.value);
+  nameIn.addEventListener('input', render);
+  nameIn.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const q = nameIn.value.trim().toLowerCase();
+    const exact = foods.find((f) => (f.name || '').toLowerCase() === q);
+    if (exact) log(exact);
+    else if (kcalIn) kcalIn.focus();
   });
-  searchInput.addEventListener('focus', () => {
-    if (searchInput.value.trim()) renderSuggestions(searchInput.value);
-  });
-  searchInput.addEventListener('blur', () => {
-    // Delay so a tap on a suggestion chip registers before we clear
-    setTimeout(() => { if (document.activeElement !== searchInput) suggestions.innerHTML = ''; }, 150);
-  });
-
-  const addBtn = el('button', {
-    class: 'btn btn-primary add-food-btn',
-    onclick: async () => {
-      const query = searchInput.value.trim();
-      const qty = Number(qtyInput.value) || 1;
-      if (!query) { toast('ENTER A FOOD NAME', 'error'); return; }
-      let food = selectedFoodId ? foods.find((f) => f.id === selectedFoodId) : null;
-      if (!food) {
-        // Try exact match by name (case-insensitive)
-        food = foods.find((f) => (f.name || '').toLowerCase() === query.toLowerCase());
-      }
-      if (!food) {
-        // Prompt for calories via modal-like flow: open the New Food screen prefilled.
-        window.location.hash = `#/food-new/${encodeURIComponent(query)}/${dateIso}/${mealKey}/${qty}`;
-        return;
-      }
-      await logMeal(food, qty, mealKey, dateIso);
-    },
-  }, [ el('span', { class: 'btn-title', text: 'ADD' }) ]);
-
-  wrap.appendChild(el('div', { class: 'add-food-inputs' }, [ searchInput, qtyInput, addBtn ]));
-  wrap.appendChild(suggestions);
+  render();
   return wrap;
 }
 
@@ -670,6 +695,6 @@ function prettyDate(iso) {
 // ---------- Refresh helper ----------
 
 async function refresh() {
-  const m = await import('./app.js?v=22');
+  const m = await import('./app.js?v=23');
   m.refresh && m.refresh();
 }

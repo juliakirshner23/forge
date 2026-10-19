@@ -5,7 +5,7 @@
 // data model. Handles kg → lb conversion (Hevy stores in kg).
 // =========================================================
 
-import * as db from './db.js?v=22';
+import * as db from './db.js?v=23';
 
 const KG_TO_LB = 2.20462;
 
@@ -364,7 +364,7 @@ function normalizeSettings(json) {
 // HEURISTICS  ·  fill in metadata Hevy doesn't provide
 // =========================================================
 
-function categorizeExercise(name) {
+export function categorizeExercise(name) {
   const n = name.toLowerCase();
   if (/(elliptical|treadmill|cycling|stairmaster|air bike|recumbent|run|walk|bike|cardio)/.test(n)) return 'cardio';
   if (/(plank|crunch|leg raise|dead bug|russian twist|bicycle|reverse crunch|core|ab)/.test(n)) return 'core';
@@ -404,7 +404,7 @@ function inferEquipment(name) {
 
 // Map a cardio exercise name to its machine so the log form can show the
 // right intensity fields. Returns null for non-cardio or unknown machines.
-function inferCardioMachine(name) {
+export function inferCardioMachine(name) {
   const n = (name || '').toLowerCase();
   if (/stairmaster|stair climber|stairclimber/.test(n)) return 'stairmaster';
   if (/treadmill|incline walk/.test(n))                 return 'treadmill';
@@ -415,7 +415,7 @@ function inferCardioMachine(name) {
   return null;
 }
 
-function inferConstraints(name, note = '') {
+export function inferConstraints(name, note = '') {
   const n = (name + ' ' + (note || '')).toLowerCase();
   const flags = [];
   if (/(plank)/.test(n)) flags.push('plank');

@@ -308,3 +308,32 @@ export function strengthFocusShare(sessions, exercises, windowDays = 30) {
   if (total === 0) return null;
   return KEYS.map((k) => ({ focus: k, count: counts[k], pct: Math.round((counts[k] / total) * 100) }));
 }
+
+// --- Per-exercise suggestion (v0.8.0) ---
+// Shown on the exercise itself (routine view + active workout), never on HOME.
+// Same rules as the old HOME suggestions: needs 5+ saved workouts spanning
+// 14+ days, then checks progression → plateau → rotation for this exercise.
+let _suggestCache = null;
+export async function exerciseSuggestion(exerciseId) {
+  if (!exerciseId) return null;
+  if (!_suggestCache || Date.now() - _suggestCache.at > 5000) {
+    const db = await import('./db.js?v=23');
+    const [sessions, sensitivity] = await Promise.all([
+      db.getAll('sessions'), db.getSetting('promptSensitivity', 'balanced'),
+    ]);
+    const done = sessions.filter((s) => !s.isActive && s.completedAt)
+      .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+    _suggestCache = { at: Date.now(), done, sensitivity };
+  }
+  const { done, sensitivity } = _suggestCache;
+  if (done.length < 5) return null;
+  const earliest = done[done.length - 1];
+  if ((Date.now() - new Date(earliest.completedAt).getTime()) / 86400000 < 14) return null;
+  const prog = suggestProgression(exerciseId, done, sensitivity);
+  if (prog) return { kind: 'increase', label: '↑ PROGRESSION', text: `TRY ${prog.target} LB NEXT · ${prog.reason}` };
+  const plateau = detectPlateau(exerciseId, done, 4);
+  if (plateau) return { kind: 'plateau', label: '◆ PLATEAU', text: `NO PR IN ${plateau.weeks} WEEKS AT ${plateau.maxWeight} LB. CONSIDER DELOAD OR SWAP.` };
+  const rot = detectRotation(exerciseId, done, 8);
+  if (rot) return { kind: 'rotation', label: '◇ ROTATION', text: `${rot.weeksInARow} WEEKS ON THIS EXERCISE. TRY A VARIATION.` };
+  return null;
+}

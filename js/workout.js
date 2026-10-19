@@ -1,83 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=22';
+import * as db from './db.js?v=23';
 import {
   el, section, notFound, formField, formTextarea, formSelect, openPicker,
-  catBadge, formatMinSec, formatDate, uid, toast, confirmModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=22';
-import { est1RM } from './progression.js?v=22';
-
-// ---------- LOG TAB (entry point) ----------
-export async function renderLog(container) {
-  const [sessions, routines] = await Promise.all([db.getAll('sessions'), db.getAll('routines')]);
-  const active = sessions.find((s) => s.isActive === true);
-  const completed = sessions.filter((s) => !s.isActive && s.completedAt)
-    .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
-
-  container.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'eyebrow', text: `WORKOUT LOG  ·  ${completed.length} COMPLETED` }),
-    el('h1', { text: 'LOG' }),
-  ]));
-
-  if (active) {
-    container.appendChild(section('IN PROGRESS',
-      el('a', { class: 'today-card', href: `#/session/${active.id}`, style: 'border-color: var(--green);' }, [
-        el('div', { class: 'today-label', style: 'color: var(--green);', text: 'RESUME WORKOUT' }),
-        el('div', { class: 'today-name', text: active.routineName || '(session)' }),
-        el('div', { class: 'today-meta', text: `STARTED ${new Date(active.startedAt).toLocaleTimeString()}` }),
-        el('div', { class: 'today-cta', style: 'color: var(--green);', text: 'RESUME →' }),
-      ])
-    ));
-  } else {
-    // Today's routine link (or generic start button)
-    const dayKey = currentDayKey();
-    const todayRoutine = routines.find((r) => r.scheduledDay === dayKey && r.isActive !== false);
-    if (todayRoutine) {
-      container.appendChild(section("TODAY'S WORKOUT",
-        el('a', { class: 'today-card', href: `#/routine/${todayRoutine.id}` }, [
-          el('div', { class: 'today-label', text: DAY_FULL[dayKey] }),
-          el('div', { class: 'today-name', text: todayRoutine.name }),
-          el('div', { class: 'today-meta', text: `${(todayRoutine.exercises || []).length} EXERCISES  ·  TAP TO START` }),
-          el('div', { class: 'today-cta', text: 'GO →' }),
-        ])
-      ));
-    } else {
-      container.appendChild(section("TODAY'S WORKOUT",
-        el('div', { class: 'today-card today-rest' }, [
-          el('div', { class: 'today-label', text: 'REST DAY' }),
-          el('div', { class: 'today-sub', text: 'NO ROUTINE SCHEDULED · CHOOSE FROM PLAN TAB IF YOU WANT TO LOG' }),
-        ])
-      ));
-    }
-  }
-
-  // Recent sessions
-  if (completed.length > 0) {
-    const recent = completed.slice(0, 10);
-    const list = el('div', {});
-    for (const s of recent) list.appendChild(sessionRow(s));
-    container.appendChild(section(`RECENT  ·  ${recent.length} OF ${completed.length}`, list));
-    if (completed.length > 10) {
-      container.appendChild(section('', el('a', { class: 'btn btn-outline', href: '#/history' }, [
-        el('span', { class: 'btn-title', text: 'VIEW ALL HISTORY →' }),
-        el('span', { class: 'btn-sub', text: 'CALENDAR HEATMAP + FULL LIST' }),
-      ])));
-    }
-  } else {
-    container.appendChild(section('RECENT', el('div', { class: 'empty-note', text: 'NO SESSIONS LOGGED YET' })));
-  }
-}
-
-function sessionRow(s) {
-  const setsCount = (s.exercises || []).reduce((n, ex) => n + (ex.sets || []).filter((st) => st.done).length, 0);
-  const dur = s.startedAt && s.completedAt ? Math.round((new Date(s.completedAt) - new Date(s.startedAt)) / 60000) : null;
-  return el('a', { class: 'nav-row', href: `#/session/${s.id}` }, [
-    el('div', { class: 'nav-row-main' }, [
-      el('div', { class: 'nav-row-title', text: s.routineName || '(session)' }),
-      el('div', { class: 'nav-row-sub', text: `${formatDate(s.completedAt || s.startedAt)}  ·  ${setsCount} SETS${dur != null ? '  ·  ' + dur + ' MIN' : ''}` }),
-    ]),
-    el('div', { class: 'nav-row-arrow', text: '›' }),
-  ]);
-}
+  catBadge, formatMinSec, formatDate, uid, toast, confirmModal, askModal, getActiveSession, currentDayKey, DAY_FULL,
+} from './ui.js?v=23';
+import { est1RM, exerciseSuggestion } from './progression.js?v=23';
 
 // ---------- START SESSION (called from routine detail) ----------
 export async function startSession(routine) {
@@ -130,9 +57,7 @@ export async function renderSession(container, params) {
   const session = await db.get('sessions', sessionId);
   if (!session) { container.appendChild(notFound('SESSION NOT FOUND', '#/log', 'LOG')); return; }
 
-  if (view === 'summary' || (!session.isActive && view !== 'edit')) {
-    return renderSessionSummary(container, session);
-  }
+  if (!session.isActive) return renderSessionSummary(container, session);
   return renderActiveSession(container, session);
 }
 
@@ -140,6 +65,13 @@ export async function renderSession(container, params) {
 let restTimerId = null;
 let restEndTime = null;
 let elapsedTimerId = null;
+
+export function suggestionNote(sg) {
+  return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
+    el('span', { class: 'ex-suggest-kind', text: sg.label }),
+    el('span', { class: 'ex-suggest-text', text: sg.text }),
+  ]);
+}
 
 async function renderActiveSession(container, session) {
   // Elapsed timer
@@ -187,13 +119,13 @@ async function renderActiveSession(container, session) {
       el('span', { class: 'btn-title', text: '+ ADD EXERCISE' }),
       el('span', { class: 'btn-sub', text: 'INSERT ONE MORE INTO THIS SESSION' }),
     ]),
-    el('button', { class: 'btn btn-primary', onclick: () => onFinishClick(session) }, [
-      el('span', { class: 'btn-title', text: 'FINISH WORKOUT →' }),
-      el('span', { class: 'btn-sub', text: 'REVIEW + SAVE SESSION' }),
+    el('button', { class: 'btn btn-primary', onclick: () => openFinishModal(session) }, [
+      el('span', { class: 'btn-title', text: 'FINISH & SAVE WORKOUT' }),
+      el('span', { class: 'btn-sub', text: 'ADDS IT TO YOUR LOG' }),
     ]),
     el('button', { class: 'btn btn-outline', onclick: () => onAbandonClick(session) }, [
-      el('span', { class: 'btn-title', text: 'ABANDON WORKOUT' }),
-      el('span', { class: 'btn-sub', text: 'DELETE THIS SESSION WITHOUT SAVING' }),
+      el('span', { class: 'btn-title', text: 'DISCARD WORKOUT' }),
+      el('span', { class: 'btn-sub', text: 'DELETE WITHOUT SAVING' }),
     ]),
   ]);
   container.appendChild(section('SESSION', bottomActions));
@@ -218,8 +150,8 @@ async function openSessionMenu(session) {
       el('span', { class: 'btn-sub', text: 'CHANGES APPLY TO THE ROUTINE' }),
     ]),
     el('button', { class: 'btn btn-danger', onclick: () => { document.getElementById('inspector-scrim').hidden = true; onAbandonClick(session); } }, [
-      el('span', { class: 'btn-title', text: 'DISCARD SESSION' }),
-      el('span', { class: 'btn-sub', text: 'DELETES WITHOUT SAVING' }),
+      el('span', { class: 'btn-title', text: 'DISCARD WORKOUT' }),
+      el('span', { class: 'btn-sub', text: 'DELETE WITHOUT SAVING' }),
     ]),
   ]);
   body.appendChild(stack);
@@ -227,28 +159,17 @@ async function openSessionMenu(session) {
 }
 
 async function addExerciseMidSession(session) {
-  const [exercises, settings] = await Promise.all([db.getAll('exercises'), db.getSetting('constraints')]);
+  const settings = await db.getSetting('constraints');
   const activeFlags = settings?.active ? (settings.flags || []) : [];
-  const sorted = [...exercises].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  const items = sorted.map((ex) => {
+  const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+  openExercisePicker('ADD EXERCISE TO WORKOUT', async (ex) => {
     const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
-    return {
-      label: `${(ex.category || '?').charAt(0).toUpperCase()} · ${ex.name}${flagged ? ' ⚑' : ''}`,
-      id: ex.id, ex, flagged,
-    };
-  });
-  openPicker('ADD EXERCISE TO SESSION', items, async (item) => {
-    if (item.flagged) {
-      const ok = await new Promise((res) => confirmModal(
-        'CONSTRAINT WARNING',
-        `${item.ex.name} conflicts with your active constraints. Add anyway?`,
-        () => res(true),
-      ));
+    if (flagged) {
+      const ok = await askModal('CONSTRAINT WARNING', `${ex.name} conflicts with your active constraints. Add anyway?`, 'ADD ANYWAY', 'CANCEL');
       if (!ok) return;
     }
-    const ex = item.ex;
     const isCardio = ex.category === 'cardio';
-    const newBlock = {
+    session.exercises = [...(session.exercises || []), {
       exerciseId: ex.id,
       exerciseName: ex.name,
       order: (session.exercises || []).length,
@@ -259,12 +180,26 @@ async function addExerciseMidSession(session) {
       sets: isCardio
         ? [{ order: 0, type: 'normal', plannedDurationSec: 1500, actualDurationSec: null, done: false }]
         : [{ order: 0, type: 'normal', plannedReps: 10, plannedWeightLb: null, actualReps: null, actualWeightLb: null, done: false }],
-    };
-    session.exercises = [...(session.exercises || []), newBlock];
+    }];
+    session.currentExerciseIdx = session.exercises.length - 1;
     await db.put('sessions', session);
     toast(`ADDED · ${ex.name}`, 'ok');
+
+    // Offer to keep it in the routine for next time.
+    const routine = session.routineId ? await db.get('routines', session.routineId) : null;
+    if (routine && !(routine.exercises || []).some((e) => e.exerciseId === ex.id)) {
+      const keep = await askModal('SAVE TO ROUTINE?',
+        `Also add ${ex.name} to "${routine.name}" permanently?`, 'SAVE TO ROUTINE', 'THIS WORKOUT ONLY');
+      if (keep) {
+        const { routineEntryFor } = await import('./routine-editor.js?v=23');
+        routine.exercises = [...(routine.exercises || []), routineEntryFor(ex, (routine.exercises || []).length)];
+        routine.updatedAt = new Date().toISOString();
+        await db.put('routines', routine);
+        toast(`SAVED TO ${routine.name}`, 'ok');
+      }
+    }
     refresh();
-  });
+  }, { activeFlags });
 }
 
 function exerciseJumpStrip(session, currentIdx) {
@@ -322,6 +257,9 @@ function renderExerciseCard(session, current, idx) {
   }
 
   wrap.appendChild(el('div', { class: 'active-name', text: current.exerciseName || '(unknown)' }));
+  const tip = el('div', {});
+  wrap.appendChild(tip);
+  exerciseSuggestion(current.exerciseId).then((sg) => { if (sg) tip.replaceWith(suggestionNote(sg)); });
 
   // Sets grid
   const grid = el('div', { class: 'set-grid' });
@@ -700,64 +638,74 @@ async function onSkip(session, current, exIdx) {
   refresh();
 }
 function onAbandonClick(session) {
-  confirmModal('ABANDON WORKOUT?', 'Delete this session without saving. Sets logged so far will be lost. Continue?', async () => {
+  confirmModal('DISCARD WORKOUT?', 'Delete this workout without saving. Sets logged so far will be lost.', async () => {
     clearInterval(elapsedTimerId); clearInterval(restTimerId);
     await db.remove('sessions', session.id);
-    toast('SESSION ABANDONED', 'ok');
+    toast('WORKOUT DISCARDED', 'ok');
     window.location.hash = '#/home';
   });
 }
-async function onFinishClick(session) {
-  clearInterval(elapsedTimerId); clearInterval(restTimerId);
-  window.location.hash = `#/session/${session.id}/summary`;
+// v0.8.0 · One-step save: popup with totals + optional notes, then SAVE.
+function openFinishModal(session) {
+  const all = (session.exercises || []).flatMap((ex) => ex.sets || []);
+  const done = all.filter((st) => st.done).length;
+  const durationMin = Math.round((Date.now() - new Date(session.startedAt).getTime()) / 60000);
+  document.getElementById('inspector-title').textContent = 'FINISH & SAVE';
+  const body = document.getElementById('inspector-body');
+  body.innerHTML = '';
+  body.appendChild(el('div', { class: 'finish-totals', text: `${done} OF ${all.length} SETS LOGGED  ·  ${durationMin} MIN` }));
+  if (done < all.length) {
+    body.appendChild(el('div', { class: 'form-hint', text: 'SETS NOT MARKED DONE WILL NOT COUNT.' }));
+  }
+  const form = el('div', { class: 'form-stack' }, [
+    formTextarea('NOTES (OPTIONAL)', 'notes', session.notes || '', 'How did it feel?', 3),
+  ]);
+  body.appendChild(form);
+  const saveBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
+    el('span', { class: 'btn-title', text: 'SAVE WORKOUT' }),
+  ]);
+  saveBtn.addEventListener('click', async () => {
+    saveBtn.disabled = true;
+    clearInterval(elapsedTimerId); clearInterval(restTimerId);
+    session.notes = form.querySelector('[name="notes"]').value.trim();
+    session.prs = await computePRs(session);
+    session.completedAt = new Date().toISOString();
+    session.isActive = false;
+    await db.put('sessions', session);
+    await maybeAdvancePushupLadder(session);
+    document.getElementById('inspector-scrim').hidden = true;
+    toast(`WORKOUT SAVED  ·  ${done} SETS`, 'ok', 3000);
+    const target = `#/session/${session.id}`;
+    if (window.location.hash === target) refresh(); else window.location.hash = target;
+  });
+  const backBtn = el('button', { class: 'btn btn-outline', style: 'margin-top: 8px;' }, [
+    el('span', { class: 'btn-title', text: 'KEEP GOING' }),
+  ]);
+  backBtn.addEventListener('click', () => { document.getElementById('inspector-scrim').hidden = true; });
+  body.appendChild(saveBtn);
+  body.appendChild(backBtn);
+  document.getElementById('inspector-scrim').hidden = false;
 }
-async function refresh() { const m = await import('./app.js?v=22'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=23'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
-  const isFinishing = session.isActive === true;
   const startedAt = new Date(session.startedAt);
   const completedAt = session.completedAt ? new Date(session.completedAt) : new Date();
   const durationMin = Math.round((completedAt - startedAt) / 60000);
   const totalSets = (session.exercises || []).reduce((n, ex) => n + (ex.sets || []).filter((s) => s.done).length, 0);
   const totalExercises = (session.exercises || []).filter((ex) => (ex.sets || []).some((s) => s.done)).length;
-  const skipped = (session.exercises || []).filter((ex) => ex.skipped).length;
-
-  // For finishing, snapshot PRs by comparing to prior best per exercise
-  let prs = session.prs || [];
-  if (isFinishing) {
-    prs = await computePRs(session);
-  }
+  const prs = session.prs || [];
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: isFinishing ? `#/session/${session.id}` : '#/history', class: 'crumb', text: isFinishing ? '‹ BACK TO SESSION' : '‹ HISTORY' }),
-      el('span', { text: '  ·  ' + (isFinishing ? 'REVIEW' : 'SESSION') }),
+      el('a', { href: '#/log', class: 'crumb', text: '‹ LOG' }),
+      el('span', { text: '  ·  SAVED WORKOUT' }),
     ]),
     el('h1', { text: session.routineName || '(session)' }),
-    el('p', { class: 'hero-meta', text: `${formatDate(session.startedAt)}  ·  ${durationMin} MIN  ·  ${totalSets} SETS  ·  ${totalExercises} EXERCISES` }),
+    el('p', { class: 'hero-meta', text: `${formatDate(session.completedAt || session.startedAt)}  ·  ${durationMin} MIN  ·  ${totalSets} SETS  ·  ${totalExercises} EXERCISES` }),
   ]));
 
-  // Stats strip
-  container.appendChild(section('SUMMARY', el('div', { class: 'stat-strip' }, [
-    el('div', { class: 'stat-mini' }, [
-      el('span', { class: 'stat-mini-label', text: 'DURATION' }),
-      el('span', { class: 'stat-mini-value', text: durationMin }),
-      el('span', { class: 'stat-mini-sub', text: 'MIN' }),
-    ]),
-    el('div', { class: 'stat-mini' }, [
-      el('span', { class: 'stat-mini-label', text: 'SETS' }),
-      el('span', { class: 'stat-mini-value', text: totalSets }),
-      el('span', { class: 'stat-mini-sub', text: 'LOGGED' }),
-    ]),
-    el('div', { class: 'stat-mini' }, [
-      el('span', { class: 'stat-mini-label', text: 'PRs' }),
-      el('span', { class: 'stat-mini-value', text: prs.length }),
-      el('span', { class: 'stat-mini-sub', text: 'THIS SESSION' }),
-    ]),
-  ])));
-
-  // PRs list
   if (prs.length > 0) {
     const prList = el('div', { class: 'exercise-list' });
     for (const pr of prs) {
@@ -772,7 +720,6 @@ async function renderSessionSummary(container, session) {
     container.appendChild(section(`PERSONAL BESTS  ·  ${prs.length}`, prList));
   }
 
-  // Exercises done
   const exList = el('div', { class: 'exercise-list' });
   for (const ex of (session.exercises || [])) {
     const doneSets = (ex.sets || []).filter((s) => s.done);
@@ -786,33 +733,11 @@ async function renderSessionSummary(container, session) {
       ]),
     ]));
   }
+  if (exList.children.length === 0) exList.appendChild(el('div', { class: 'empty-note', text: 'NO SETS LOGGED' }));
   container.appendChild(section('EXERCISES DONE', exList));
 
-  // Notes only (calorie entry moved to HOME · Daily Calories card, v0.7.3)
-  if (isFinishing) {
-    const form = el('div', { class: 'form-stack' });
-    form.appendChild(formTextarea('SESSION NOTES', 'notes', session.notes, 'How did the workout feel? Anything to remember?'));
-    container.appendChild(section('LOG DETAILS', form));
-    container.appendChild(el('div', { class: 'form-hint', style: 'padding: 0 20px;', text: 'ENTER CALORIES BURNED ON HOME → DAILY CALORIES.' }));
-
-    const saveBtn = el('button', { class: 'btn btn-primary' }, [
-      el('span', { class: 'btn-title', text: 'SAVE SESSION' }),
-      el('span', { class: 'btn-sub', text: 'MARK AS COMPLETE + ADD TO HISTORY' }),
-    ]);
-    saveBtn.addEventListener('click', async () => {
-      session.notes = form.querySelector('[name="notes"]').value.trim();
-      session.completedAt = completedAt.toISOString();
-      session.isActive = false;
-      session.prs = prs;
-      await db.put('sessions', session);
-      await maybeAdvancePushupLadder(session);
-      toast(`SESSION SAVED  ·  ${totalSets} SETS`, 'ok', 3500);
-      window.location.hash = '#/home';
-    });
-    container.appendChild(section('FINISH', el('div', { class: 'action-stack' }, [saveBtn])));
-  } else {
-    // Historical session: read-only notes; show legacy calorie fields if they existed
-    if (session.notes) container.appendChild(section('NOTES', el('div', { class: 'note-block', text: session.notes })));
+  if (session.notes) container.appendChild(section('NOTES', el('div', { class: 'note-block', text: session.notes })));
+  if (session.cardioCalories != null || session.strengthCalories != null) {
     const infoCard = el('div', { class: 'settings-list' });
     if (session.cardioCalories != null) infoCard.appendChild(el('div', { class: 'settings-row' }, [
       el('span', { class: 'settings-key', text: 'CARDIO CALORIES (LEGACY)' }),
@@ -822,29 +747,30 @@ async function renderSessionSummary(container, session) {
       el('span', { class: 'settings-key', text: 'STRENGTH CALORIES (LEGACY)' }),
       el('span', { class: 'settings-value', text: String(session.strengthCalories) }),
     ]));
-    if (infoCard.children.length > 0) container.appendChild(section('DETAILS', infoCard));
-
-    container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [
-      el('button', { class: 'btn btn-primary', onclick: () => duplicateSession(session) }, [
-        el('span', { class: 'btn-title', text: 'DUPLICATE AS NEW SESSION' }),
-        el('span', { class: 'btn-sub', text: 'START FRESH FROM THIS ROUTINE' }),
-      ]),
-      el('button', { class: 'btn btn-outline', onclick: () => openEditPastSession(session) }, [
-        el('span', { class: 'btn-title', text: 'EDIT DETAILS' }),
-        el('span', { class: 'btn-sub', text: 'DATE · NOTES' }),
-      ]),
-      el('button', { class: 'btn btn-danger', onclick: () => {
-        confirmModal('DELETE SESSION?', 'This permanently removes this session. Cannot be undone.', async () => {
-          await db.remove('sessions', session.id);
-          toast('SESSION DELETED', 'ok');
-          window.location.hash = '#/history';
-        });
-      } }, [
-        el('span', { class: 'btn-title', text: 'DELETE SESSION' }),
-        el('span', { class: 'btn-sub', text: 'IRREVERSIBLE' }),
-      ]),
-    ])));
+    container.appendChild(section('DETAILS', infoCard));
   }
+
+  container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [
+    el('button', { class: 'btn btn-outline', onclick: () => openEditPastSession(session) }, [
+      el('span', { class: 'btn-title', text: 'EDIT DETAILS' }),
+      el('span', { class: 'btn-sub', text: 'DATE · NOTES' }),
+    ]),
+    el('button', { class: 'btn btn-danger', onclick: () => confirmDeleteSession(session, '#/log') }, [
+      el('span', { class: 'btn-title', text: 'DELETE WORKOUT' }),
+      el('span', { class: 'btn-sub', text: 'REMOVES IT FROM YOUR LOG' }),
+    ]),
+  ])));
+}
+
+export function confirmDeleteSession(session, goTo) {
+  confirmModal('DELETE WORKOUT?',
+    `Delete "${session.routineName || 'workout'}" from ${formatDate(session.completedAt || session.startedAt)}? This cannot be undone.`,
+    async () => {
+      await db.remove('sessions', session.id);
+      toast('WORKOUT DELETED', 'ok');
+      if (goTo && window.location.hash !== goTo) window.location.hash = goTo;
+      else refresh();
+    });
 }
 
 function doneSetsSummary(sets) {
@@ -893,42 +819,6 @@ async function computePRs(session) {
     }
   }
   return prs;
-}
-
-// v0.6.0 · Duplicate a past session as a fresh in-progress one.
-async function duplicateSession(session) {
-  const now = new Date().toISOString();
-  const fresh = {
-    id: uid('ses'),
-    routineId: session.routineId,
-    routineName: session.routineName,
-    routineDay: session.routineDay || null,
-    startedAt: now,
-    completedAt: null,
-    isActive: true,
-    currentExerciseIdx: 0,
-    exercises: (session.exercises || []).map((ex, i) => ({
-      exerciseId: ex.exerciseId, exerciseName: ex.exerciseName,
-      order: i, restBetweenSets: ex.restBetweenSets || null,
-      supersetGroupId: ex.supersetGroupId || null,
-      pickOneGroupId: ex.pickOneGroupId || null,
-      notes: '', skipped: false,
-      sets: (ex.sets || []).map((s, si) => ({
-        order: si, type: s.type || 'normal',
-        plannedReps: s.actualReps ?? s.plannedReps ?? null,
-        plannedWeightLb: s.actualWeightLb ?? s.plannedWeightLb ?? null,
-        plannedDurationSec: s.actualDurationSec ?? s.plannedDurationSec ?? null,
-        plannedDistanceMi: s.actualDistanceMi ?? s.plannedDistanceMi ?? null,
-        actualReps: null, actualWeightLb: null,
-        actualDurationSec: null, actualDistanceMi: null,
-        done: false, doneAt: null,
-      })),
-    })),
-    notes: '', cardioCalories: null, strengthCalories: null, prs: [],
-  };
-  await db.put('sessions', fresh);
-  toast('SESSION DUPLICATED · IN PROGRESS', 'ok');
-  window.location.hash = `#/session/${fresh.id}`;
 }
 
 // v0.6.0 · Edit calories, notes, or date on a completed session.

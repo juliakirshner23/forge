@@ -1,16 +1,16 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=22';
-import { importBundledHevyBackup } from './import.js?v=22';
-import { toast } from './ui.js?v=22';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=22';
-import { renderLog, renderSession } from './workout.js?v=22';
-import { renderHistory } from './history.js?v=22';
-import { renderBody } from './body.js?v=22';
-import { renderGoals } from './goals.js?v=22';
-import { renderSettings } from './settings.js?v=22';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=22';
+import * as db from './db.js?v=23';
+import { importBundledHevyBackup } from './import.js?v=23';
+import { toast } from './ui.js?v=23';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=23';
+import { renderSession } from './workout.js?v=23';
+import { renderHistory } from './history.js?v=23';
+import { renderBody } from './body.js?v=23';
+import { renderGoals } from './goals.js?v=23';
+import { renderSettings } from './settings.js?v=23';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=23';
 
-const APP_VERSION = '0.7.9';
+const APP_VERSION = '0.8.0';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -18,7 +18,7 @@ const ROUTES = {
   '/routine':  renderRoutine,
   '/library':  renderLibrary,
   '/exercise': renderExercise,
-  '/log':      renderLog,
+  '/log':      renderHistory,
   '/session':  renderSession,
   '/history':  renderHistory,
   '/body':     renderBody,
@@ -33,6 +33,8 @@ const ROUTES = {
   '/food-edit':renderFoodEdit,
 };
 
+let _routeToken = 0;
+
 async function handleRoute() {
   const hash = window.location.hash.slice(1);
   const parts = hash.split('/').filter(Boolean);
@@ -41,13 +43,22 @@ async function handleRoute() {
 
   const handler = ROUTES[routeKey];
   const container = document.getElementById('app-content');
+  const token = ++_routeToken;
   container.innerHTML = '';
 
   if (!handler) {
     container.innerHTML = `<section class="hero"><div class="eyebrow">404</div><h1>SCREEN NOT FOUND</h1><p class="hero-sub">No route for <code>${hash}</code>.</p></section>`;
     return;
   }
-  try { await handler(container, params); }
+  // Render off-screen, then swap in only if no newer navigation happened.
+  // Prevents doubled screens when two renders overlap.
+  const stage = document.createElement('div');
+  try {
+    await handler(stage, params);
+    if (token !== _routeToken) return;
+    container.innerHTML = '';
+    container.append(...stage.childNodes);
+  }
   catch (err) {
     console.error('Screen error', err);
     container.innerHTML = `<section class="hero"><div class="eyebrow" style="color:#dc2626;">SCREEN ERROR</div><h1>SOMETHING BROKE</h1><p class="hero-sub">${err.message}</p></section>`;
@@ -100,7 +111,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=22');
+  const { inferFocus } = await import('./import.js?v=23');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -117,7 +128,7 @@ async function migrateV072() {
 async function migrateV074() {
   const done = await db.get('meta', 'migrated_v074');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=22');
+  const { inferFocus } = await import('./import.js?v=23');
   const exs = await db.getAll('exercises');
   let changed = 0;
   for (const e of exs) {

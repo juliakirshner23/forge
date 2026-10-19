@@ -1,6 +1,13 @@
-// FORGE history: calendar heatmap + full session list + filter (v0.6.0)
-import * as db from './db.js?v=22';
-import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=22';
+// FORGE LOG tab: saved workouts only (v0.8.0). Heatmap + filter + list.
+// Workouts are started from PLAN, never from here.
+import * as db from './db.js?v=23';
+import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=23';
+
+// Local YYYY-MM-DD (not UTC) so evening workouts land on the right day.
+function localDay(dateOrIso) {
+  const d = typeof dateOrIso === 'string' ? new Date(dateOrIso) : dateOrIso;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export async function renderHistory(container) {
   const [allSessions, routines] = await Promise.all([db.getAll('sessions'), db.getAll('routines')]);
@@ -9,11 +16,8 @@ export async function renderHistory(container) {
     .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
 
   container.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/me', class: 'crumb', text: '‹ ME' }),
-      el('span', { text: `  ·  ${completed.length} SESSIONS` }),
-    ]),
-    el('h1', { text: 'HISTORY' }),
+    el('div', { class: 'eyebrow', text: `WORKOUT LOG  ·  ${completed.length} SAVED` }),
+    el('h1', { text: 'LOG' }),
   ]));
 
   // Filter by routine
@@ -72,6 +76,12 @@ export async function renderHistory(container) {
 }
 
 function sessionRow(s) {
+  const del = el('button', { class: 'log-row-del', text: '×', 'aria-label': 'Delete workout' });
+  del.addEventListener('click', async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const { confirmDeleteSession } = await import('./workout.js?v=23');
+    confirmDeleteSession(s, null);
+  });
   const setsCount = (s.exercises || []).reduce((n, ex) => n + (ex.sets || []).filter((st) => st.done).length, 0);
   const dur = s.startedAt && s.completedAt ? Math.round((new Date(s.completedAt) - new Date(s.startedAt)) / 60000) : null;
   const prCount = (s.prs || []).length;
@@ -80,7 +90,7 @@ function sessionRow(s) {
       el('div', { class: 'nav-row-title', text: s.routineName || '(session)' }),
       el('div', { class: 'nav-row-sub', text: `${formatDate(s.completedAt)}  ·  ${setsCount} SETS${dur != null ? '  ·  ' + dur + ' MIN' : ''}${prCount ? '  ·  ★' + prCount : ''}` }),
     ]),
-    el('div', { class: 'nav-row-arrow', text: '›' }),
+    del,
   ]);
 }
 
@@ -90,7 +100,7 @@ function renderHeatmap(sessions) {
   const doneByDate = new Set();
   const setsByDate = new Map();
   for (const s of sessions) {
-    const day = s.completedAt.slice(0, 10);
+    const day = localDay(s.completedAt);
     doneByDate.add(day);
     const setCount = (s.exercises || []).reduce((n, ex) => n + (ex.sets || []).filter((st) => st.done).length, 0);
     setsByDate.set(day, (setsByDate.get(day) || 0) + setCount);
@@ -116,7 +126,7 @@ function renderHeatmap(sessions) {
     col.appendChild(el('div', { class: 'heatmap-cell heatmap-cell-header', text: monthLabel }));
     for (let i = 0; i < 7; i++) {
       const d = new Date(monOfWeek.getFullYear(), monOfWeek.getMonth(), monOfWeek.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = localDay(d);
       const isFuture = d > now;
       const done = doneByDate.has(iso);
       const sets = setsByDate.get(iso) || 0;

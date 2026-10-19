@@ -2,7 +2,7 @@
 // FORGE · Shared UI helpers
 // =========================================================
 
-import * as db from './db.js?v=22';
+import * as db from './db.js?v=23';
 
 // -------- DOM builder --------
 
@@ -198,6 +198,24 @@ export function toast(msg, kind = '', duration = 2500) {
 
 // -------- Confirmation modal --------
 
+// Two-choice question. Resolves true (yes) or false (no).
+export function askModal(title, body, yesLabel = 'YES', noLabel = 'NO') {
+  return new Promise((resolve) => {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').textContent = body;
+    const btn = document.getElementById('modal-confirm');
+    const fresh = btn.cloneNode(true);
+    btn.parentNode.replaceChild(fresh, btn);
+    fresh.textContent = yesLabel;
+    fresh.className = 'btn btn-primary';
+    const cancel = document.getElementById('modal-cancel');
+    cancel.textContent = noLabel;
+    document.getElementById('modal-scrim').hidden = false;
+    fresh.addEventListener('click', () => { document.getElementById('modal-scrim').hidden = true; resolve(true); });
+    cancel.onclick = () => { document.getElementById('modal-scrim').hidden = true; resolve(false); };
+  });
+}
+
 export function confirmModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').textContent = body;
@@ -205,6 +223,9 @@ export function confirmModal(title, body, onConfirm) {
 
   const btn = document.getElementById('modal-confirm');
   const fresh = btn.cloneNode(true);
+  fresh.textContent = 'CONFIRM';
+  fresh.className = 'btn btn-danger';
+  document.getElementById('modal-cancel').textContent = 'CANCEL';
   btn.parentNode.replaceChild(fresh, btn);
   fresh.addEventListener('click', async () => {
     document.getElementById('modal-scrim').hidden = true;
