@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=23';
+import * as db from './db.js?v=24';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
   DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=23';
+} from './ui.js?v=24';
 
 const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
 
@@ -289,7 +289,7 @@ function removeSet(ex, rerender) {
 }
 
 async function addExerciseToRoutine(model, rerender, exById) {
-  const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=24');
   openExercisePicker('ADD EXERCISE', (ex) => {
     exById.set(ex.id, ex);
     model.exercises.push(routineEntryFor(ex, model.exercises.length));

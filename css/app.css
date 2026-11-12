@@ -1554,3 +1554,68 @@ code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; background: var(-
 .quick-kcal, .quick-unit { font-size: 16px; padding: 10px; width: 100%; }
 .quick-add-btn { min-height: 44px; align-items: center; justify-content: center; flex-direction: row; }
 .quick-add-btn .btn-title { font-size: 13px; letter-spacing: 2px; }
+
+/* =========================================================
+   v0.9.0 · TAB ICONS, POINTS PILL, TRAIL HABIT LAYER
+   ========================================================= */
+.tab-icon { display: flex; align-items: center; justify-content: center; line-height: 0; }
+.tab-svg { width: 22px; height: 22px; display: block; }
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-points {
+  background: var(--amber-lo); color: var(--amber-hi);
+  font-size: 11px; font-weight: 900; letter-spacing: 1px;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+}
+:root:not([data-theme="light"]) .topbar-points { background: var(--amber-deep); color: var(--amber-hi); }
+
+.trail-card {
+  display: block; text-decoration: none; color: var(--fg);
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.trail-card:active { transform: scale(0.99); }
+.trail-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.trail-card-title { font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--amber); }
+.trail-card-open { font-size: 11px; letter-spacing: 1px; color: var(--muted-2); }
+.trail-card-nums { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; font-size: 13px; letter-spacing: 1px; }
+.trail-card-nums b, .trail-row b { font-size: 18px; font-weight: 900; color: var(--fg); letter-spacing: 0; }
+.trail-card-streak { margin-top: 4px; font-size: 12px; letter-spacing: 1px; }
+.trail-muted { color: var(--muted); }
+
+.trail-map { display: block; margin-top: 2px; }
+.trail-map .tm-area { fill: var(--bg-elev); }
+.trail-map .tm-todo { fill: none; stroke: var(--gray); stroke-width: 3; stroke-dasharray: 4 4; stroke-linejoin: round; }
+.trail-map .tm-done { fill: none; stroke: var(--green); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.trail-map .tm-peak { fill: var(--muted-2); }
+.trail-map .tm-high { fill: var(--red); }
+.trail-map .tm-end  { fill: var(--muted); }
+.trail-map .tm-you  { fill: var(--amber); stroke: var(--bg-card); stroke-width: 2; }
+.trail-map .tm-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; fill: var(--muted); }
+.trail-map .tm-label-high { fill: var(--red); }
+
+.today-stake { margin-top: 6px; font-size: 12px; letter-spacing: 1px; color: var(--muted); }
+.today-stake-earn { color: var(--green); }
+.today-stake-skip { color: var(--red); margin-top: 2px; }
+
+.trail-progress { background: var(--bg-card); border: 1px solid var(--border); padding: 12px 14px; }
+.trail-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; letter-spacing: 1px; margin-top: 6px; }
+.trail-row:first-child { margin-top: 0; }
+.trail-bar { height: 8px; background: var(--border-soft); margin: 6px 0 4px; }
+.trail-bar-fill { height: 8px; }
+.trail-bar-dist { background: var(--green); }
+.trail-bar-climb { background: var(--amber); }
+.trail-sub { font-size: 11px; letter-spacing: 1px; margin-bottom: 8px; }
+
+.badge-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.badge-tile {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--muted-2);
+  padding: 10px 6px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.badge-earned { background: var(--amber-lo); border-color: var(--amber); color: var(--amber-hi); }
+.badge-name { font-size: 10px; font-weight: 900; letter-spacing: 1px; line-height: 1.3; }
+.badge-meta { font-size: 10px; letter-spacing: 1px; opacity: 0.8; }
+
+.cal-table { display: flex; flex-direction: column; gap: 6px; }
+.cal-row { display: grid; grid-template-columns: 1fr 1fr 40px; gap: 8px; align-items: center; }
+.cal-head span { font-size: 10px; font-weight: 900; letter-spacing: 2px; color: var(--muted); }

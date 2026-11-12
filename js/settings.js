@@ -1,6 +1,7 @@
 // FORGE settings editor
-import * as db from './db.js?v=23';
-import { el, section, formField, formSelect, toast } from './ui.js?v=23';
+import * as db from './db.js?v=24';
+import { el, section, formField, formSelect, toast, confirmModal } from './ui.js?v=24';
+import { DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS, STEP_THRESHOLD, setPaused, isPaused, localIso } from './trail.js?v=24';
 
 export async function renderSettings(container) {
   const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal, theme] = await Promise.all([
@@ -10,6 +11,10 @@ export async function renderSettings(container) {
     db.getSetting('calorieBudget'), db.getSetting('netCalorieGoal'),
     db.getSetting('theme'),
   ]);
+  const [calibration, stepBonus, stairStep, pauses] = await Promise.all([
+    db.getSetting('hrCalibration', DEFAULT_CALIBRATION), db.getSetting('stepBonusPoints', DEFAULT_STEP_BONUS),
+    db.getSetting('stairStepHeightIn', null), db.getSetting('trailPauses', []),
+  ]);
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
@@ -18,6 +23,62 @@ export async function renderSettings(container) {
     ]),
     el('h1', { text: 'SETTINGS' }),
   ]));
+
+  // v0.9.0 · Trail: heart rate calibration, step bonus, Stairmaster step height
+  const calRows = calibration.map((r) => ({ ...r }));
+  const calWrap = el('div', { class: 'cal-table' });
+  function renderCal() {
+    calWrap.innerHTML = '';
+    calWrap.appendChild(el('div', { class: 'cal-row cal-head' }, [
+      el('span', { text: 'INCLINE %' }), el('span', { text: 'HEART RATE (BPM)' }), el('span', { text: '' }),
+    ]));
+    calRows.forEach((r, i) => {
+      const inc = el('input', { class: 'form-input', type: 'number', step: '0.5', value: r.incline ?? '', placeholder: '%' });
+      const bpm = el('input', { class: 'form-input', type: 'number', step: '1', value: r.bpm ?? '', placeholder: 'bpm' });
+      inc.addEventListener('input', () => { r.incline = inc.value === '' ? null : Number(inc.value); });
+      bpm.addEventListener('input', () => { r.bpm = bpm.value === '' ? null : Number(bpm.value); });
+      const del = el('button', { class: 'edit-btn edit-btn-danger', text: '×', onclick: () => { calRows.splice(i, 1); renderCal(); } });
+      calWrap.appendChild(el('div', { class: 'cal-row' }, [inc, bpm, del]));
+    });
+    calWrap.appendChild(el('button', { class: 'set-btn', text: '+ ADD INCLINE', onclick: () => { calRows.push({ incline: null, bpm: null }); renderCal(); } }));
+  }
+  renderCal();
+  const trailForm = el('div', { class: 'form-stack' }, [
+    el('div', { class: 'form-hint', text: 'TREADMILL AT 3.0 MPH. ELLIPTICAL, BIKE, ROWER, AND STRENGTH CLIMB CREDIT USE THIS TABLE. ABOVE YOUR HIGHEST ROW, CREDIT CAPS AT THAT INCLINE. CHANGES APPLY TO NEW SESSIONS ONLY.' }),
+    calWrap,
+    formField(`STEP BONUS POINTS (${STEP_THRESHOLD.toLocaleString()}+ STEPS, ALL OR NOTHING)`, 'number', 'stepBonus', stepBonus ?? DEFAULT_STEP_BONUS, 'e.g. 30'),
+    formField('STAIRMASTER STEP HEIGHT (IN)', 'number', 'stairStep', stairStep ?? '', 'MEASURE ONE STEP · NEEDED FOR STAIRMASTER CLIMB', { step: '0.1' }),
+    el('div', { class: 'form-hint', text: 'STRENGTH SESSIONS EARN 1/4 CREDIT. DAILY STEPS NEVER MOVE YOU ON THE TRAIL.' }),
+  ]);
+  async function saveTrailSettings() {
+    const cleanCal = calRows.filter((r) => r.incline != null && r.bpm != null && r.bpm > 0 && r.incline >= 0)
+      .sort((a, b) => a.incline - b.incline);
+    await db.setSetting('hrCalibration', cleanCal);
+    const sb = trailForm.querySelector('[name="stepBonus"]').value;
+    await db.setSetting('stepBonusPoints', sb === '' ? DEFAULT_STEP_BONUS : Number(sb));
+    const sh = trailForm.querySelector('[name="stairStep"]').value;
+    await db.setSetting('stairStepHeightIn', sh === '' ? null : Number(sh));
+  }
+  trailForm.appendChild(el('button', { class: 'btn btn-primary', onclick: async () => {
+    try { await saveTrailSettings(); toast('TRAIL SETTINGS SAVED', 'ok'); }
+    catch (err) { console.error(err); toast('SAVE FAILED · ' + err.message, 'error'); }
+  } }, [ el('span', { class: 'btn-title', text: 'SAVE TRAIL SETTINGS' }) ]));
+  container.appendChild(section('TRAIL · CLIMB CALIBRATION', trailForm));
+
+  // Pause: applies immediately (no save needed)
+  const pausedNow = isPaused(localIso(new Date()), pauses);
+  const pauseBtn = el('button', { class: pausedNow ? 'btn btn-primary' : 'btn btn-outline' }, [
+    el('span', { class: 'btn-title', text: pausedNow ? 'RESUME TRAIL' : 'PAUSE TRAIL' }),
+    el('span', { class: 'btn-sub', text: pausedNow
+      ? `PAUSED SINCE ${pauses.find((p) => p.end == null)?.start || ''} · TAP TO RESUME TODAY`
+      : 'NO SKIP PENALTIES · STREAK HELD · DISTANCE, CLIMB, POINTS, BADGES KEPT' }),
+  ]);
+  pauseBtn.addEventListener('click', () => {
+    confirmModal(pausedNow ? 'RESUME TRAIL?' : 'PAUSE TRAIL?',
+      pausedNow ? 'Progress counting restarts today.' : 'Nothing counts and nothing is lost until you resume. Workouts logged while paused earn no trail credit.',
+      async () => { await setPaused(!pausedNow); toast(pausedNow ? 'TRAIL RESUMED' : 'TRAIL PAUSED', 'ok'); const m = await import('./app.js?v=24'); m.refresh && m.refresh(); });
+  });
+  container.appendChild(section('TRAIL · PAUSE', pauseBtn));
 
   // Profile
   const profileForm = el('div', { class: 'form-stack' });
@@ -57,9 +118,9 @@ export async function renderSettings(container) {
 
   // Appearance
   const themeForm = el('div', { class: 'form-stack' });
-  themeForm.appendChild(formSelect('THEME', 'theme', theme || 'dark', [
-    { value: 'dark',  label: 'DARK · BLACK + AMBER (DEFAULT)' },
-    { value: 'light', label: 'LIGHT · IVORY + AMBER' },
+  themeForm.appendChild(formSelect('THEME', 'theme', theme || 'light', [
+    { value: 'light', label: 'LIGHT · IVORY + AMBER (DEFAULT)' },
+    { value: 'dark',  label: 'DARK · BLACK + AMBER' },
   ]));
   container.appendChild(section('APPEARANCE', themeForm));
 
@@ -117,6 +178,7 @@ export async function renderSettings(container) {
       const newTheme = themeForm.querySelector('[name="theme"]').value;
       await db.setSetting('theme', newTheme);
       document.documentElement.setAttribute('data-theme', newTheme);
+      await saveTrailSettings();
       const conActive = conForm.querySelector('[name="conActive"]').value === 'true';
       await db.setSetting('constraints', {
         active: conActive,

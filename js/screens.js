@@ -1,15 +1,17 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=23';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=23';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=23';
+import * as db from './db.js?v=24';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=24';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=24';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=23';
-import { exerciseSuggestion } from './progression.js?v=23';
+} from './ui.js?v=24';
+import { exerciseSuggestion } from './progression.js?v=24';
+import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=24';
+import { icon } from './icons.js?v=24';
 
 function suggestionNoteEl(sg) {
   return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
@@ -49,6 +51,9 @@ export async function renderHome(container) {
     ));
   }
 
+  const trail = await getStatus();
+  container.appendChild(section('INCA TRAIL', trailCard(trail)));
+
   let todayCard;
   if (todaysRoutines.length === 0) {
     todayCard = el('div', { class: 'today-card today-rest' }, [
@@ -62,15 +67,138 @@ export async function renderHome(container) {
       el('div', { class: 'today-name', text: r.name }),
       el('div', { class: 'tag-row' }, (r.focusTags || []).map(focusTagEl)),
       el('div', { class: 'today-meta', text: `${(r.exercises || []).length} EXERCISES  ·  TAP TO VIEW` }),
+      ...todayStakes(trail),
       el('div', { class: 'today-cta', text: 'GO →' }),
     ]);
   }
   container.appendChild(section("TODAY'S WORKOUT", todayCard));
 
-  container.appendChild(section('THIS WEEK', weeklyAdherence(completedSessions, routines)));
-
   container.appendChild(await caloriesCardSection());
   container.appendChild(await stepsCardSection());
+}
+
+// ---------- TRAIL (v0.9.0) ----------
+function todayStakes(trail) {
+  if (trail.pausedToday) return [el('div', { class: 'today-stake', text: 'TRAIL PAUSED · NO PENALTIES' })];
+  if (trail.doneToday) return [el('div', { class: 'today-stake today-stake-earn', text: '✓ DONE TODAY · TRAIL CREDIT EARNED' })];
+  const pts = Math.round(WORKOUT_POINTS * trail.multiplier);
+  return [
+    el('div', { class: 'today-stake today-stake-earn', text: `EARNS +${pts} PTS · PLUS TRAIL MILES AND CLIMB FROM WHAT YOU LOG` }),
+    el('div', { class: 'today-stake today-stake-skip', text: `SKIP IT: −${SKIP_PENALTY} PTS AND STREAK RESETS · DISTANCE IS NEVER LOST` }),
+  ];
+}
+
+const MAP_W = 260, MAP_H = 110;
+const mapX = (km) => 6 + (km / TRAIL.totalKm) * (MAP_W - 14);
+const mapY = (m) => 92 - (m - 2400) * 0.04;
+function profileAt(km) {
+  const pts = TRAIL.profile;
+  if (km <= 0) return pts[0].m;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    if (km <= b.km) return a.m + (b.m - a.m) * ((km - a.km) / (b.km - a.km));
+  }
+  return pts[pts.length - 1].m;
+}
+export function trailMapSvg(distKm) {
+  const pts = TRAIL.profile;
+  const k = Math.max(0, Math.min(TRAIL.totalKm, distKm));
+  const line = pts.map((p) => `${mapX(p.km).toFixed(1)} ${mapY(p.m).toFixed(1)}`);
+  const area = `M${line.join(' L')} L${mapX(TRAIL.totalKm)} 100 L${mapX(0)} 100 Z`;
+  const doneArr = pts.filter((p) => p.km < k).map((p) => `${mapX(p.km).toFixed(1)} ${mapY(p.m).toFixed(1)}`);
+  const mx = mapX(k), my = mapY(profileAt(k));
+  doneArr.push(`${mx.toFixed(1)} ${my.toFixed(1)}`);
+  const peaks = pts.filter((p) => p.peak).map((p) => `<circle cx="${mapX(p.km).toFixed(1)}" cy="${mapY(p.m).toFixed(1)}" r="3" class="tm-peak"/>`).join('');
+  return `<svg class="trail-map" viewBox="0 0 ${MAP_W} ${MAP_H}" width="100%" role="img" aria-label="Inca Trail elevation profile with your position">
+    <path d="${area}" class="tm-area"/>
+    <path d="M${line.join(' L')}" class="tm-todo"/>
+    ${doneArr.length > 1 ? `<path d="M${doneArr.join(' L')}" class="tm-done"/>` : ''}
+    ${peaks}
+    <circle cx="${mapX(19).toFixed(1)}" cy="${mapY(4215).toFixed(1)}" r="3.5" class="tm-high"/>
+    <circle cx="${mapX(44).toFixed(1)}" cy="${mapY(2430).toFixed(1)}" r="3.5" class="tm-end"/>
+    <circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="5.5" class="tm-you"/>
+    <text x="${(mapX(19) - 4).toFixed(1)}" y="14" text-anchor="end" class="tm-label tm-label-high">4,215 M</text>
+    <text x="${(mapX(24) + 4).toFixed(1)}" y="22" class="tm-label">3,950 M</text>
+    <text x="6" y="108" class="tm-label">START</text>
+    <text x="${MAP_W - 4}" y="108" text-anchor="end" class="tm-label">MACHU PICCHU</text>
+  </svg>`;
+}
+
+function trailCard(t) {
+  const leftMi = Math.max(0, TRAIL.totalKm - t.distKm) / KM_PER_MI;
+  const map = el('div', {});
+  map.innerHTML = trailMapSvg(t.distKm);
+  const children = [
+    el('div', { class: 'trail-card-head' }, [
+      el('span', { class: 'trail-card-title', text: t.complete ? '◆ TRAIL COMPLETE' : 'YOUR POSITION' }),
+      el('span', { class: 'trail-card-open', text: 'OPEN ›' }),
+    ]),
+    map,
+    el('div', { class: 'trail-card-nums' }, [
+      el('span', {}, [
+        el('b', { text: fmtMi(t.distKm) }), document.createTextNode(' MI  ·  '),
+        el('span', { class: 'trail-muted', text: `${leftMi.toFixed(1)} TO GO` }),
+      ]),
+      el('span', {}, [ el('b', { text: fmtFt(t.climbM) }), document.createTextNode(' FT') ]),
+    ]),
+    el('div', { class: 'trail-muted trail-card-streak' }, [
+      t.pausedToday
+        ? document.createTextNode('⏸ PAUSED · PROGRESS HELD')
+        : document.createTextNode(`${t.streak}-DAY STREAK  ·  ${t.multiplier.toFixed(2).replace(/0$/, '')}× POINTS`),
+    ]),
+  ];
+  return el('a', { class: 'trail-card', href: '#/trail' }, children);
+}
+
+export async function renderTrail(container) {
+  const t = await getStatus();
+  container.appendChild(el('section', { class: 'hero' }, [
+    el('div', { class: 'eyebrow' }, [
+      el('a', { href: '#/home', class: 'crumb', text: '‹ HOME' }),
+      el('span', { text: '  ·  CLASSIC 4-DAY ROUTE' }),
+    ]),
+    el('h1', { text: TRAIL.name }),
+    t.pausedToday ? el('p', { class: 'hero-sub', text: 'PAUSED · NO PENALTIES · EVERYTHING HELD. RESUME IN ME → SETTINGS.' }) : null,
+  ]));
+
+  const totalMi = TRAIL.totalKm / KM_PER_MI;
+  const totalFt = Math.round(TRAIL.gainM * 3.28084);
+  const distPct = Math.min(100, (t.distKm / TRAIL.totalKm) * 100);
+  const climbPct = Math.min(100, (t.climbM / TRAIL.gainM) * 100);
+  const leftMi = Math.max(0, totalMi - t.distKm / KM_PER_MI);
+  const leftFt = Math.max(0, totalFt - Math.round(t.climbM * 3.28084));
+  const progress = el('div', { class: 'trail-progress' }, [
+    el('div', { class: 'trail-row' }, [ el('span', { class: 'trail-muted', text: 'DISTANCE' }), el('span', {}, [el('b', { text: fmtMi(t.distKm) }), document.createTextNode(` / ${totalMi.toFixed(1)} MI`)]) ]),
+    el('div', { class: 'trail-bar' }, [ el('div', { class: 'trail-bar-fill trail-bar-dist', style: `width:${distPct}%` }) ]),
+    el('div', { class: 'trail-muted trail-sub', text: `${leftMi.toFixed(1)} MI TO GO` }),
+    el('div', { class: 'trail-row' }, [ el('span', { class: 'trail-muted', text: 'CLIMB' }), el('span', {}, [el('b', { text: fmtFt(t.climbM) }), document.createTextNode(` / ${totalFt.toLocaleString()} FT`)]) ]),
+    el('div', { class: 'trail-bar' }, [ el('div', { class: 'trail-bar-fill trail-bar-climb', style: `width:${climbPct}%` }) ]),
+    el('div', { class: 'trail-muted trail-sub', text: `${leftFt.toLocaleString()} FT TO CLIMB  ·  HIGH POINT 4,215 M` }),
+    el('div', { class: 'trail-muted trail-sub', text: 'FINISHING NEEDS BOTH THE DISTANCE AND THE CLIMB.' }),
+  ]);
+  container.appendChild(section('PROGRESS', progress));
+
+  container.appendChild(section('POINTS', el('div', { class: 'trail-progress' }, [
+    el('div', { class: 'trail-row' }, [ el('span', { class: 'trail-muted', text: 'TOTAL' }), el('b', { text: String(t.points) }) ]),
+    el('div', { class: 'trail-row' }, [ el('span', { class: 'trail-muted', text: 'STREAK' }), el('span', { text: `${t.streak} DAYS  ·  ${t.multiplier.toFixed(2)}×` }) ]),
+  ])));
+
+  const grid = el('div', { class: 'badge-grid' });
+  for (const b of TRAIL.badges) {
+    const earned = t.badges[b.id];
+    const tile = el('div', { class: 'badge-tile' + (earned ? ' badge-earned' : '') });
+    tile.innerHTML = icon(b.icon, 22);
+    tile.appendChild(el('div', { class: 'badge-name', text: b.name }));
+    tile.appendChild(el('div', { class: 'badge-meta', text: earned ? earned : (b.complete ? 'FINISH' : `${(b.km / KM_PER_MI).toFixed(1)} MI`) }));
+    grid.appendChild(tile);
+  }
+  container.appendChild(section('BADGES', grid));
+
+  container.appendChild(section('HOW CREDIT WORKS', el('div', { class: 'note-block', text:
+    'Treadmill: speed × time, climb from incline. Elliptical and other cardio: climb from your heart rate calibration. ' +
+    'Stairmaster: steps × step height. Strength: 1/4 credit from your heart rate. Steps never move you on the trail. ' +
+    'Points: workouts (more for a streak), +10 per meal logged, a bonus at 12,500 steps. Skipping a scheduled day costs 20 points. ' +
+    'Calibration, step height, and pause live in ME → SETTINGS.' })));
 }
 
 async function renderRecentPrsCard(session) {
@@ -236,13 +364,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=23'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=24'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=23');
+    const { toast } = await import('./ui.js?v=24');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -407,7 +535,11 @@ export async function renderPlan(container) {
   }
 
   container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [
-    el('a', { class: 'btn btn-primary', href: '#/routine/new' }, [
+    el('button', { class: 'btn btn-primary', onclick: onQuickWorkout }, [
+      el('span', { class: 'btn-title', text: '+ QUICK WORKOUT' }),
+      el('span', { class: 'btn-sub', text: 'OFF-PLAN SESSION · ADD ANY EXERCISE · COUNTS ON THE TRAIL' }),
+    ]),
+    el('a', { class: 'btn btn-outline', href: '#/routine/new' }, [
       el('span', { class: 'btn-title', text: '+ NEW ROUTINE' }),
       el('span', { class: 'btn-sub', text: 'CREATE A CUSTOM WORKOUT' }),
     ]),
@@ -416,6 +548,14 @@ export async function renderPlan(container) {
       el('span', { class: 'btn-sub', text: 'BROWSE, EDIT, AND ORGANIZE YOUR EXERCISES' }),
     ]),
   ])));
+}
+
+async function onQuickWorkout() {
+  const active = await getActiveSession();
+  if (active) { toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
+  const { startSession } = await import('./workout.js?v=24');
+  const s = await startSession({ id: null, name: 'QUICK WORKOUT', scheduledDay: null, exercises: [] });
+  window.location.hash = `#/session/${s.id}`;
 }
 
 function dayCard(dayKey, routines, isToday) {
@@ -456,13 +596,13 @@ function routineRow(r) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=23');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=24');
     return renderRoutineEditor(container, null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=23');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=24');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -517,7 +657,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=23');
+  const { startSession } = await import('./workout.js?v=24');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -611,7 +751,7 @@ export async function renderLibrary(container) {
 
   container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
     el('button', { class: 'btn btn-primary', onclick: async () => {
-      const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+      const { openExercisePicker } = await import('./exercise-picker.js?v=24');
       openExercisePicker('ADD FROM CATALOG', (ex) => { window.location.hash = `#/exercise/${ex.id}`; }, { startTab: 'catalog' });
     } }, [
       el('span', { class: 'btn-title', text: '+ ADD FROM CATALOG' }),
@@ -857,7 +997,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=23');
+  const { renderStatsPage } = await import('./stats.js?v=24');
   return renderStatsPage(container, params);
 }
 
@@ -880,7 +1020,7 @@ export async function renderMe(container) {
   const links = el('div', { class: 'action-stack' }, [
     navRow('BODY METRICS', 'LOG WEIGHT + MEASUREMENTS', '#/body'),
     navRow('GOALS', 'INCA TRAIL · WEIGHT · PUSH-UPS · CLEARANCE', '#/goals'),
-    navRow('SETTINGS', 'UNITS · STRIDE · CONSTRAINTS · BACKUP', '#/settings'),
+    navRow('SETTINGS', 'TRAIL · CALIBRATION · PAUSE · UNITS · BACKUP', '#/settings'),
   ]);
   container.appendChild(section('QUICK ACCESS', links));
 
@@ -959,7 +1099,7 @@ function onReimportClick() {
     } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=23'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=24'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

@@ -1,19 +1,20 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=23';
-import { importBundledHevyBackup } from './import.js?v=23';
-import { toast } from './ui.js?v=23';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe } from './screens.js?v=23';
-import { renderSession } from './workout.js?v=23';
-import { renderHistory } from './history.js?v=23';
-import { renderBody } from './body.js?v=23';
-import { renderGoals } from './goals.js?v=23';
-import { renderSettings } from './settings.js?v=23';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=23';
+import * as db from './db.js?v=24';
+import { importBundledHevyBackup } from './import.js?v=24';
+import { toast } from './ui.js?v=24';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe, renderTrail } from './screens.js?v=24';
+import { renderSession } from './workout.js?v=24';
+import { renderHistory } from './history.js?v=24';
+import { renderBody } from './body.js?v=24';
+import { renderGoals } from './goals.js?v=24';
+import { renderSettings } from './settings.js?v=24';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=24';
 
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.9.0';
 
 const ROUTES = {
   '/home':     renderHome,
+  '/trail':    renderTrail,
   '/plan':     renderPlan,
   '/routine':  renderRoutine,
   '/library':  renderLibrary,
@@ -65,12 +66,23 @@ async function handleRoute() {
   }
   updateActiveTab(routeKey);
   window.scrollTo(0, 0);
+  updatePointsPill();
+}
+
+// v0.9.0 · Trail points in the header, on every screen.
+async function updatePointsPill() {
+  try {
+    const { getStatus } = await import('./trail.js?v=24');
+    const t = await getStatus();
+    const pill = document.getElementById('topbar-points');
+    if (pill) { pill.textContent = `${t.points} PTS`; pill.hidden = false; }
+  } catch (err) { console.error('Points pill failed', err); }
 }
 
 function updateActiveTab(routeKey) {
   // Map sub-routes to their parent tab for highlighting
   const tabMap = {
-    '/home': '/home',
+    '/home': '/home', '/trail': '/home',
     '/plan': '/plan', '/routine': '/plan', '/library': '/plan', '/exercise': '/plan',
     '/log': '/log', '/session': '/log', '/history': '/log',
     '/food': '/food', '/food-day': '/food', '/food-new': '/food', '/food-edit': '/food',
@@ -95,6 +107,7 @@ async function boot() {
     await migrateV050();
     await migrateV072();
     await migrateV074();
+    await migrateV090();
     await applyTheme();
     await checkBackupReminder();
     if (!window.location.hash) window.location.hash = '#/home';
@@ -111,7 +124,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=23');
+  const { inferFocus } = await import('./import.js?v=24');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -128,7 +141,7 @@ async function migrateV072() {
 async function migrateV074() {
   const done = await db.get('meta', 'migrated_v074');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=23');
+  const { inferFocus } = await import('./import.js?v=24');
   const exs = await db.getAll('exercises');
   let changed = 0;
   for (const e of exs) {
@@ -145,8 +158,22 @@ async function migrateV074() {
   if (changed > 0) console.log(`v0.7.4 migration · reclassified ${changed} exercise(s)`);
 }
 
+// v0.9.0 · Light theme becomes the default (easier to read in the gym), and the
+// trail habit layer starts today with Julia's heart rate calibration.
+async function migrateV090() {
+  const done = await db.get('meta', 'migrated_v090');
+  if (done) return;
+  const { localIso, DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS } = await import('./trail.js?v=24');
+  await db.setSetting('theme', 'light');
+  if (!(await db.getSetting('trailStartDate'))) await db.setSetting('trailStartDate', localIso(new Date()));
+  if (!(await db.getSetting('hrCalibration'))) await db.setSetting('hrCalibration', DEFAULT_CALIBRATION);
+  if ((await db.getSetting('stepBonusPoints')) == null) await db.setSetting('stepBonusPoints', DEFAULT_STEP_BONUS);
+  if (!(await db.getSetting('trailPauses'))) await db.setSetting('trailPauses', []);
+  await db.put('meta', { key: 'migrated_v090', value: { at: new Date().toISOString() } });
+}
+
 async function applyTheme() {
-  const t = await db.getSetting('theme', 'dark');
+  const t = await db.getSetting('theme', 'light');
   document.documentElement.setAttribute('data-theme', t);
 }
 

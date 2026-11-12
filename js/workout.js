@@ -1,10 +1,10 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=23';
+import * as db from './db.js?v=24';
 import {
   el, section, notFound, formField, formTextarea, formSelect, openPicker,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, askModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=23';
-import { est1RM, exerciseSuggestion } from './progression.js?v=23';
+} from './ui.js?v=24';
+import { est1RM, exerciseSuggestion } from './progression.js?v=24';
 
 // ---------- START SESSION (called from routine detail) ----------
 export async function startSession(routine) {
@@ -145,10 +145,10 @@ async function openSessionMenu(session) {
       el('span', { class: 'btn-title', text: '+ ADD EXERCISE' }),
       el('span', { class: 'btn-sub', text: 'INSERT INTO CURRENT SESSION' }),
     ]),
-    el('a', { class: 'btn btn-outline', href: `#/routine/${session.routineId}`, onclick: () => { document.getElementById('inspector-scrim').hidden = true; } }, [
+    session.routineId ? el('a', { class: 'btn btn-outline', href: `#/routine/${session.routineId}`, onclick: () => { document.getElementById('inspector-scrim').hidden = true; } }, [
       el('span', { class: 'btn-title', text: "EDIT TODAY'S ROUTINE" }),
       el('span', { class: 'btn-sub', text: 'CHANGES APPLY TO THE ROUTINE' }),
-    ]),
+    ]) : null,
     el('button', { class: 'btn btn-danger', onclick: () => { document.getElementById('inspector-scrim').hidden = true; onAbandonClick(session); } }, [
       el('span', { class: 'btn-title', text: 'DISCARD WORKOUT' }),
       el('span', { class: 'btn-sub', text: 'DELETE WITHOUT SAVING' }),
@@ -161,7 +161,7 @@ async function openSessionMenu(session) {
 async function addExerciseMidSession(session) {
   const settings = await db.getSetting('constraints');
   const activeFlags = settings?.active ? (settings.flags || []) : [];
-  const { openExercisePicker } = await import('./exercise-picker.js?v=23');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=24');
   openExercisePicker('ADD EXERCISE TO WORKOUT', async (ex) => {
     const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
     if (flagged) {
@@ -191,7 +191,7 @@ async function addExerciseMidSession(session) {
       const keep = await askModal('SAVE TO ROUTINE?',
         `Also add ${ex.name} to "${routine.name}" permanently?`, 'SAVE TO ROUTINE', 'THIS WORKOUT ONLY');
       if (keep) {
-        const { routineEntryFor } = await import('./routine-editor.js?v=23');
+        const { routineEntryFor } = await import('./routine-editor.js?v=24');
         routine.exercises = [...(routine.exercises || []), routineEntryFor(ex, (routine.exercises || []).length)];
         routine.updatedAt = new Date().toISOString();
         await db.put('routines', routine);
@@ -429,6 +429,7 @@ async function openSetEntry(session, current, exIdx, set, setIdx) {
       : (set.plannedDurationSec != null ? (set.plannedDurationSec / 60) : '');
     form.appendChild(formField('DURATION (MINUTES)', 'number', 'duration', plannedMin, 'e.g. 25', { step: '0.1' }));
     form.appendChild(formField('DISTANCE (MI)', 'number', 'distance', set.actualDistanceMi ?? '', 'LEAVE BLANK TO AUTO-CALC FROM SPEED × TIME', { step: '0.01' }));
+    form.appendChild(formField('AVG HEART RATE (BPM)', 'number', 'avgHr', set.actualAvgHr ?? '', 'TRAIL CLIMB CREDIT · e.g. 132', { step: '1' }));
   } else if (isDuration) {
     const plannedMin = set.actualDurationSec != null ? (set.actualDurationSec / 60)
       : (set.plannedDurationSec != null ? (set.plannedDurationSec / 60) : '');
@@ -499,6 +500,8 @@ async function openSetEntry(session, current, exIdx, set, setIdx) {
       const d = form.querySelector('[name="duration"]').value;
       const dist = form.querySelector('[name="distance"]').value;
       set.actualDurationSec = d ? Math.round(Number(d) * 60) : null;
+      const hr = form.querySelector('[name="avgHr"]').value;
+      set.actualAvgHr = hr ? Number(hr) : null;
       // Distance: use user value if given, else auto-calc from speed × time when possible.
       if (dist) {
         set.actualDistanceMi = Number(dist);
@@ -661,6 +664,13 @@ function openFinishModal(session) {
     formTextarea('NOTES (OPTIONAL)', 'notes', session.notes || '', 'How did it feel?', 3),
   ]);
   body.appendChild(form);
+  // v0.9.0 · Strength heart rate → trail credit (1/4 of cardio). Shown only when
+  // non-cardio sets were logged; checked against the exercise library on save.
+  const hasNonDurationSets = (session.exercises || []).some((ex) =>
+    (ex.sets || []).some((st) => st.done && st.actualDurationSec == null && st.plannedDurationSec == null));
+  if (hasNonDurationSets) {
+    form.appendChild(formField('STRENGTH AVG HEART RATE (BPM)', 'number', 'strengthAvgHr', session.strengthAvgHr ?? '', 'OPTIONAL · EARNS 1/4 TRAIL CREDIT', { step: '1' }));
+  }
   const saveBtn = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [
     el('span', { class: 'btn-title', text: 'SAVE WORKOUT' }),
   ]);
@@ -668,13 +678,20 @@ function openFinishModal(session) {
     saveBtn.disabled = true;
     clearInterval(elapsedTimerId); clearInterval(restTimerId);
     session.notes = form.querySelector('[name="notes"]').value.trim();
+    const shr = form.querySelector('[name="strengthAvgHr"]')?.value;
+    if (shr !== undefined) session.strengthAvgHr = shr ? Number(shr) : null;
     session.prs = await computePRs(session);
     session.completedAt = new Date().toISOString();
     session.isActive = false;
     await db.put('sessions', session);
     await maybeAdvancePushupLadder(session);
+    let credit = null;
+    try { const { recordSession } = await import('./trail.js?v=24'); credit = await recordSession(session); }
+    catch (err) { console.error('Trail credit failed', err); }
     document.getElementById('inspector-scrim').hidden = true;
-    toast(`WORKOUT SAVED  ·  ${done} SETS`, 'ok', 3000);
+    const creditText = credit && (credit.distKm > 0 || credit.climbM > 0)
+      ? `  ·  +${(credit.distKm / 1.609344).toFixed(2)} MI  ·  +${Math.round(credit.climbM * 3.28084)} FT` : '';
+    toast(`WORKOUT SAVED  ·  ${done} SETS${creditText}`, 'ok', 3500);
     const target = `#/session/${session.id}`;
     if (window.location.hash === target) refresh(); else window.location.hash = target;
   });
@@ -686,7 +703,7 @@ function openFinishModal(session) {
   body.appendChild(backBtn);
   document.getElementById('inspector-scrim').hidden = false;
 }
-async function refresh() { const m = await import('./app.js?v=23'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=24'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -841,6 +858,8 @@ function openEditPastSession(session) {
       session.completedAt = d + prevTime;
     }
     session.notes = form.querySelector('[name="notes"]').value.trim();
+    const shr = form.querySelector('[name="strengthAvgHr"]')?.value;
+    if (shr !== undefined) session.strengthAvgHr = shr ? Number(shr) : null;
     await db.put('sessions', session);
     document.getElementById('inspector-scrim').hidden = true;
     toast('SESSION UPDATED', 'ok');

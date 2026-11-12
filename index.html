@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#f5f4ef">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="FORGE">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="FORGE — your personal strength & recovery tracker.">
@@ -16,28 +16,31 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/app.css?v=23">
+<link rel="stylesheet" href="css/app.css?v=24">
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-inner">
     <span class="brand">FORGE</span>
+    <span class="topbar-right">
+    <span class="topbar-points" id="topbar-points" hidden></span>
     <a href="#/me" class="topbar-me" id="topbar-me">
       <span class="topbar-me-label">ME</span>
-      <span class="topbar-meta" id="topbar-meta">v0.8.0</span>
+      <span class="topbar-meta" id="topbar-meta">v0.9.0</span>
     </a>
+    </span>
   </div>
 </header>
 
 <main id="app-content"><div class="loading-screen">LOADING...</div></main>
 
 <nav class="tabbar">
-  <a href="#/home"  class="tab" data-route="/home"><span class="tab-icon">▤</span><span class="tab-label">HOME</span></a>
-  <a href="#/plan"  class="tab" data-route="/plan"><span class="tab-icon">◆</span><span class="tab-label">PLAN</span></a>
-  <a href="#/log"   class="tab" data-route="/log"><span class="tab-icon">▶</span><span class="tab-label">LOG</span></a>
-  <a href="#/food"  class="tab" data-route="/food"><span class="tab-icon">◉</span><span class="tab-label">FOOD</span></a>
-  <a href="#/stats" class="tab" data-route="/stats"><span class="tab-icon">▲</span><span class="tab-label">STATS</span></a>
+  <a href="#/home"  class="tab" data-route="/home"><span class="tab-icon"><svg class="tab-svg" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg></span><span class="tab-label">HOME</span></a>
+  <a href="#/plan"  class="tab" data-route="/plan"><span class="tab-icon"><svg class="tab-svg" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M4 11h16"/></svg></span><span class="tab-label">PLAN</span></a>
+  <a href="#/log"   class="tab" data-route="/log"><span class="tab-icon"><svg class="tab-svg" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l11 0"/><path d="M9 12l11 0"/><path d="M9 18l11 0"/><path d="M5 6l0 .01"/><path d="M5 12l0 .01"/><path d="M5 18l0 .01"/></svg></span><span class="tab-label">LOG</span></a>
+  <a href="#/food"  class="tab" data-route="/food"><span class="tab-icon"><svg class="tab-svg" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.319c0 3.102 .444 5.319 2.222 7.978c1.351 1.797 3.156 2.247 5.08 .988c.426 -.268 .97 -.268 1.397 0c1.923 1.26 3.728 .809 5.079 -.988c1.778 -2.66 2.222 -4.876 2.222 -7.977c0 -2.661 -1.99 -5.32 -4.444 -5.32c-1.267 0 -2.41 .693 -3.22 1.44a.5 .5 0 0 1 -.672 0c-.809 -.746 -1.953 -1.44 -3.22 -1.44c-2.454 0 -4.444 2.66 -4.444 5.319"/><path d="M7 12c0 -1.47 .454 -2.34 1.5 -3"/><path d="M12 7c0 -1.2 .867 -4 3 -4"/></svg></span><span class="tab-label">FOOD</span></a>
+  <a href="#/stats" class="tab" data-route="/stats"><span class="tab-icon"><svg class="tab-svg" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -6"/><path d="M15 9a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -10"/><path d="M9 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -14"/><path d="M4 20h14"/></svg></span><span class="tab-label">STATS</span></a>
 </nav>
 
 <input type="file" id="file-input" accept="application/json,.json" hidden>
@@ -64,6 +67,6 @@
   </div>
 </div>
 
-<script type="module" src="js/app.js?v=23"></script>
+<script type="module" src="js/app.js?v=24"></script>
 </body>
 </html>
