@@ -1,11 +1,11 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=27';
+import * as db from './db.js?v=28';
 import {
   el, section, notFound, formField, formTextarea, formSelect, openPicker,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, askModal, getActiveSession, currentDayKey, DAY_FULL,
   localDay, todayIso,
-} from './ui.js?v=27';
-import { est1RM, exerciseSuggestion } from './progression.js?v=27';
+} from './ui.js?v=28';
+import { est1RM, exerciseSuggestion } from './progression.js?v=28';
 
 // ---------- START SESSION (called from routine detail) ----------
 export async function startSession(routine, opts = {}) {
@@ -167,7 +167,7 @@ async function openSessionMenu(session) {
 async function addExerciseMidSession(session) {
   const settings = await db.getSetting('constraints');
   const activeFlags = settings?.active ? (settings.flags || []) : [];
-  const { openExercisePicker } = await import('./exercise-picker.js?v=27');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=28');
   openExercisePicker('ADD EXERCISE TO WORKOUT', async (ex) => {
     const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
     if (flagged) {
@@ -197,7 +197,7 @@ async function addExerciseMidSession(session) {
       const keep = await askModal('SAVE TO ROUTINE?',
         `Also add ${ex.name} to "${routine.name}" permanently?`, 'SAVE TO ROUTINE', 'THIS WORKOUT ONLY');
       if (keep) {
-        const { routineEntryFor } = await import('./routine-editor.js?v=27');
+        const { routineEntryFor } = await import('./routine-editor.js?v=28');
         routine.exercises = [...(routine.exercises || []), routineEntryFor(ex, (routine.exercises || []).length)];
         routine.updatedAt = new Date().toISOString();
         await db.put('routines', routine);
@@ -711,7 +711,7 @@ function openFinishModal(session) {
     await db.put('sessions', session);
     await maybeAdvancePushupLadder(session);
     let credit = null;
-    try { const { recordSession } = await import('./trail.js?v=27'); credit = await recordSession(session); }
+    try { const { recordSession } = await import('./trail.js?v=28'); credit = await recordSession(session); }
     catch (err) { console.error('Trail credit failed', err); }
     document.getElementById('inspector-scrim').hidden = true;
     const creditText = credit && (credit.distKm > 0 || credit.climbM > 0)
@@ -728,7 +728,7 @@ function openFinishModal(session) {
   body.appendChild(backBtn);
   document.getElementById('inspector-scrim').hidden = false;
 }
-async function refresh() { const m = await import('./app.js?v=27'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -1006,7 +1006,7 @@ async function openSwap(session, current, idx) {
   }
   stack.appendChild(el('button', { class: 'btn btn-outline', onclick: async () => {
     document.getElementById('inspector-scrim').hidden = true;
-    const { openExercisePicker } = await import('./exercise-picker.js?v=27');
+    const { openExercisePicker } = await import('./exercise-picker.js?v=28');
     openExercisePicker('SWAP FOR ANOTHER EXERCISE', (ex) => swapTo(ex));
   } }, [ el('span', { class: 'btn-title', text: 'PICK ANOTHER EXERCISE' }) ]));
   body.appendChild(stack);

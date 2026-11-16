@@ -1,12 +1,12 @@
 // FORGE v1.0.0 · PLAN tab: program phases, blocks, daily routines, scheduling
-import * as db from './db.js?v=27';
+import * as db from './db.js?v=28';
 import {
   el, section, notFound, catBadge, focusTagEl, routineTags, toast, confirmModal, getActiveSession, todayIso, formatDuration,
-} from './ui.js?v=27';
+} from './ui.js?v=28';
 import {
   PHASES, phaseById, currentPhase, phaseCountdown, phaseBlocks, routinesOn, scheduleSummary,
   weekDates, shortDate, dayKeyOfIso, parseIso, CAT_LABEL,
-} from './program.js?v=27';
+} from './program.js?v=28';
 
 const BLOCK_ORDER = ['pull', 'legs', 'push', 'core', 'cardio', 'rehab'];
 
@@ -19,7 +19,7 @@ export function openSheet(title, bodyEl) {
   document.getElementById('inspector-scrim').hidden = false;
 }
 export function closeSheet() { document.getElementById('inspector-scrim').hidden = true; }
-async function refresh() { const m = await import('./app.js?v=27'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
 
 // ---------- PLAN ----------
 export async function renderPlan(container, params) {
@@ -86,6 +86,9 @@ export async function renderPlan(container, params) {
 
   // Daily routines for this phase (+ routines with no phase)
   const phaseRoutines = active.filter((r) => r.phaseId === sel.id || !r.phaseId);
+  const DAY_IDX = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
+  const firstDay = (r) => Math.min(9, ...(r.scheduleDays || []).map((d) => DAY_IDX[d] ?? 9));
+  phaseRoutines.sort((a, b) => firstDay(a) - firstDay(b) || (a.name || '').localeCompare(b.name || ''));
   const rList = el('div', { class: 'day-list' });
   if (phaseRoutines.length === 0) rList.appendChild(el('div', { class: 'empty-note', text: 'NO ROUTINES YET · BUILD ONE FROM THE BLOCKS ABOVE' }));
   for (const r of phaseRoutines) rList.appendChild(routineListRow(r, exById));
@@ -132,7 +135,7 @@ function routineListRow(r, exById) {
     el('a', { class: 'routine-row-main', href: `#/routine/${r.id}` }, [
       el('div', { class: 'routine-row-title', text: r.name }),
       el('div', { class: 'tag-row' }, routineTags(r, exById).map(focusTagEl)),
-      el('div', { class: 'routine-row-sub', text: `${(r.exercises || []).length} EXERCISES  ·  ${scheduleSummary(r)}` }),
+      el('div', { class: 'routine-row-sub', text: `${(r.exercises || []).length} EXERCISE${(r.exercises || []).length === 1 ? '' : 'S'}  ·  ${scheduleSummary(r)}` }),
     ]),
     el('button', { class: 'btn-mini', text: 'ADD TO DAY', onclick: () => openScheduleSheet(r) }),
   ]);
@@ -299,7 +302,7 @@ function openAddToDate(iso, routines) {
 async function onQuickWorkout() {
   const active = await getActiveSession();
   if (active) { toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
-  const { startSession } = await import('./workout.js?v=27');
+  const { startSession } = await import('./workout.js?v=28');
   const s = await startSession({ id: null, name: 'QUICK WORKOUT', scheduledDay: null, exercises: [] });
   window.location.hash = `#/session/${s.id}`;
 }
@@ -316,7 +319,7 @@ export function openLogPast(routines) {
       if (!dateIn.value) { toast('PICK A DATE', 'error'); return; }
       const active = await getActiveSession();
       if (active) { closeSheet(); toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
-      const { startSession } = await import('./workout.js?v=27');
+      const { startSession } = await import('./workout.js?v=28');
       const s = await startSession(r, { logDate: dateIn.value });
       closeSheet();
       window.location.hash = `#/session/${s.id}`;

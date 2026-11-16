@@ -322,6 +322,13 @@ export const EXDEFS = {
   "existing": null,
   "guideKey": "pallof-press-cable"
  },
+ "cable_rotation": {
+  "name": "Cable Rotation (Horizontal Woodchop)",
+  "cat": "core",
+  "eq": "Cable",
+  "existing": null,
+  "guideKey": "cable-rotation-horizontal-woodchop"
+ },
  "band_pallof": {
   "name": "Band Pallof Press",
   "cat": "core",
@@ -606,17 +613,6 @@ export const PHASE1_BLOCKS = {
    "alts": []
   },
   {
-   "key": "back_extension",
-   "sets": 3,
-   "lo": 10,
-   "hi": 12,
-   "unit": "reps",
-   "note": "",
-   "alts": [
-    "seated_back_ext"
-   ]
-  },
-  {
    "key": "calf_press_l",
    "sets": 2,
    "lo": 15,
@@ -630,14 +626,14 @@ export const PHASE1_BLOCKS = {
  ],
  "push": [
   {
-   "key": "machine_chest_press",
+   "key": "db_bench",
    "sets": 3,
    "lo": 8,
    "hi": 12,
    "unit": "reps",
    "note": "",
    "alts": [
-    "db_bench",
+    "machine_chest_press",
     "cable_chest_press"
    ]
   },
@@ -651,14 +647,14 @@ export const PHASE1_BLOCKS = {
    "alts": []
   },
   {
-   "key": "machine_shoulder_press",
+   "key": "db_shoulder_press",
    "sets": 3,
    "lo": 8,
    "hi": 12,
    "unit": "reps",
    "note": "",
    "alts": [
-    "db_shoulder_press"
+    "machine_shoulder_press"
    ]
   },
   {
@@ -695,6 +691,17 @@ export const PHASE1_BLOCKS = {
    "note": "",
    "alts": [
     "band_pallof"
+   ]
+  },
+  {
+   "key": "cable_rotation",
+   "sets": 3,
+   "lo": 10,
+   "hi": 10,
+   "unit": "reps_side",
+   "note": "Hips and feet stay still",
+   "alts": [
+    "band_rotation"
    ]
   },
   {

@@ -1,18 +1,18 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=27';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=27';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=27';
+import * as db from './db.js?v=28';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=28';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=28';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar, routineTags, localDay, todayIso,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=27';
-import { exerciseSuggestion } from './progression.js?v=27';
-import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=27';
-import { icon } from './icons.js?v=27';
-import { CAT_LABEL, routinesOn, weekDates, scheduleSummary, guideFor, targetsForExercise, phaseById, dayKeyOfIso } from './program.js?v=27';
+} from './ui.js?v=28';
+import { exerciseSuggestion } from './progression.js?v=28';
+import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=28';
+import { icon } from './icons.js?v=28';
+import { CAT_LABEL, routinesOn, weekDates, scheduleSummary, guideFor, targetsForExercise, phaseById, dayKeyOfIso } from './program.js?v=28';
 
 function suggestionNoteEl(sg) {
   return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
@@ -215,7 +215,7 @@ async function renderRecentPrsCard(session) {
 }
 
 async function caloriesCardSection() {
-  const { exerciseKcalForDate, foodKcalForDate, latestBodyWeightLb } = await import('./food.js?v=27');
+  const { exerciseKcalForDate, foodKcalForDate, latestBodyWeightLb } = await import('./food.js?v=28');
   const today = todayIso();
   const exercises = await db.getAll('exercises');
   const exIndex = new Map(exercises.map((e) => [e.id, e]));
@@ -271,13 +271,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=27'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=28'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=27');
+    const { toast } = await import('./ui.js?v=28');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -406,11 +406,11 @@ function countdownCard(label, targetDate, sub) {
 
 // ---------- PLAN ----------
 export async function renderPlan(container, params) {
-  const m = await import('./plan.js?v=27');
+  const m = await import('./plan.js?v=28');
   return m.renderPlan(container, params);
 }
 export async function renderBlock(container, params) {
-  const m = await import('./plan.js?v=27');
+  const m = await import('./plan.js?v=28');
   return m.renderBlock(container, params);
 }
 
@@ -418,13 +418,13 @@ export async function renderBlock(container, params) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=27');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=28');
     return renderRoutineEditor(container, null, action || null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=27');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=28');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -474,7 +474,7 @@ async function renderRoutineDetail(container, routine) {
     el('span', { class: 'btn-title', text: 'ADD TO DAY' }),
     el('span', { class: 'btn-sub', text: 'REPEAT ON WEEKDAYS OR PICK DATES' }),
   ]);
-  schedBtn.addEventListener('click', async () => { const m = await import('./plan.js?v=27'); m.openScheduleSheet(routine); });
+  schedBtn.addEventListener('click', async () => { const m = await import('./plan.js?v=28'); m.openScheduleSheet(routine); });
   const editBtn = el('a', { class: 'btn btn-outline', href: `#/routine/${routine.id}/edit` }, [
     el('span', { class: 'btn-title', text: 'EDIT ROUTINE' }),
     el('span', { class: 'btn-sub', text: 'CHANGE EXERCISES, SETS, NAME, PHASE' }),
@@ -483,7 +483,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=27');
+  const { startSession } = await import('./workout.js?v=28');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -580,7 +580,7 @@ export async function renderLibrary(container) {
 
   container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
     el('button', { class: 'btn btn-primary', onclick: async () => {
-      const { openExercisePicker } = await import('./exercise-picker.js?v=27');
+      const { openExercisePicker } = await import('./exercise-picker.js?v=28');
       openExercisePicker('ADD FROM CATALOG', (ex) => { window.location.hash = `#/exercise/${ex.id}`; }, { startTab: 'catalog' });
     } }, [
       el('span', { class: 'btn-title', text: '+ ADD FROM CATALOG' }),
@@ -847,7 +847,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=27');
+  const { renderStatsPage } = await import('./stats.js?v=28');
   return renderStatsPage(container, params);
 }
 
@@ -859,7 +859,7 @@ export async function renderMe(container) {
   ]);
 
   // Settings (profile, units, targets, trail, training, app), then data.
-  const { renderSettings } = await import('./settings.js?v=27');
+  const { renderSettings } = await import('./settings.js?v=28');
   await renderSettings(container);
 
   const grid = el('div', { class: 'stat-grid' });
@@ -898,7 +898,7 @@ export async function renderMe(container) {
     const pct = ((est.usage / est.quota) * 100).toFixed(2);
     storageText = `${usedMb} MB USED  ·  ${quotaMb} MB AVAILABLE  ·  ${pct}%`;
   }
-  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `FORGE v1.0.2  ·  Storage: ${storageText}` }) ]));
+  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `FORGE v1.0.3  ·  Storage: ${storageText}` }) ]));
 }
 
 // ---------- PROGRESS: history · charts · body · goals ----------
@@ -912,13 +912,13 @@ export async function renderProgress(container, params) {
   container.appendChild(el('section', { class: 'section' }, [el('div', { class: 'seg-bar' },
     PROGRESS_SEGS.map(([k, label]) => el('a', { class: 'seg' + (k === seg ? ' seg-on' : ''), href: `#/progress/${k}`, text: label })))]));
   const inner = el('div', {});
-  if (seg === 'history') { const m = await import('./history.js?v=27'); await m.renderHistory(inner); }
-  else if (seg === 'charts') { const m = await import('./stats.js?v=27'); await m.renderStatsPage(inner, [], { embedded: true, skipBody: true }); }
+  if (seg === 'history') { const m = await import('./history.js?v=28'); await m.renderHistory(inner); }
+  else if (seg === 'charts') { const m = await import('./stats.js?v=28'); await m.renderStatsPage(inner, [], { embedded: true, skipBody: true }); }
   else if (seg === 'body') {
-    const [{ renderBody }, { renderBodyMeasurementCharts }] = await Promise.all([import('./body.js?v=27'), import('./stats.js?v=27')]);
+    const [{ renderBody }, { renderBodyMeasurementCharts }] = await Promise.all([import('./body.js?v=28'), import('./stats.js?v=28')]);
     inner.appendChild(await renderBodyMeasurementCharts(await db.getAll('bodyMeasurements')));
     await renderBody(inner, []);
-  } else { const m = await import('./goals.js?v=27'); await m.renderGoals(inner, []); }
+  } else { const m = await import('./goals.js?v=28'); await m.renderGoals(inner, []); }
   inner.querySelectorAll(':scope > section.hero').forEach((h) => h.remove());
   container.append(...inner.childNodes);
 }
@@ -948,7 +948,7 @@ function onClearClick() {
     catch (err) { console.error(err); toast('CLEAR FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=27'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

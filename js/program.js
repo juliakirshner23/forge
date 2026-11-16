@@ -1,6 +1,6 @@
 // FORGE v1.0.0 · Program: phases, blocks, scheduling, exercise guides
-import * as db from './db.js?v=27';
-import { EXDEFS, OTHER_GUIDES, PHASE1_BLOCKS, PHASE2_BLOCKS } from './program-data.js?v=27';
+import * as db from './db.js?v=28';
+import { EXDEFS, OTHER_GUIDES, PHASE1_BLOCKS, PHASE2_BLOCKS } from './program-data.js?v=28';
 
 // ---------- Categories (one field, used everywhere) ----------
 export const CATS = ['push', 'pull', 'legs', 'core', 'cardio', 'rehab'];
@@ -156,7 +156,7 @@ export async function targetsForExercise(exerciseId) {
 let _guides = null;
 export async function getGuides() {
   if (_guides) return _guides;
-  try { _guides = await (await fetch('data/guides.json?v=27')).json(); }
+  try { _guides = await (await fetch('data/guides.json?v=28')).json(); }
   catch (err) { console.error('Guides load failed', err); _guides = {}; }
   return _guides;
 }
@@ -274,4 +274,84 @@ export async function migrateV101FreshStart() {
   await db.setSetting('trailStartDate', '2026-11-16');
   await db.put('meta', { key: 'fresh_start_v101', value: { at: new Date().toISOString() } });
   return true;
+}
+
+// ---------- v1.0.3 · Daily routines for Phases I and II ----------
+// Mon Pull · Tue Legs · Wed Push · Thu Pull · Fri Legs · Sat Push · Sun Cardio only
+const ROUTINE_PLAN = {
+  p1: [
+    { id: 'rt_p1_pull', name: 'Pull + Core', days: ['mon', 'thu'], parts: [['cardio', ['elliptical']], ['pull', null], ['core', ['pallof', 'cable_rotation']]] },
+    { id: 'rt_p1_legs', name: 'Legs + Core', days: ['tue', 'fri'], parts: [['cardio', ['elliptical']], ['legs', null], ['core', ['plank', 'russian_twist']]] },
+    { id: 'rt_p1_push', name: 'Push + Core', days: ['wed', 'sat'], parts: [['cardio', ['elliptical']], ['push', null], ['core', ['pallof', 'cable_rotation']]] },
+    { id: 'rt_p1_cardio', name: 'Cardio only', days: ['sun'], parts: [['cardio', ['elliptical']]], cardioMin: 45 },
+  ],
+  p2: [
+    { id: 'rt_p2_pull', name: 'Pull + Core (seated)', days: ['mon', 'thu'], parts: [['cardio', ['seated_vr']], ['pull', null], ['core', ['band_press_out', 'band_rotation']]] },
+    { id: 'rt_p2_legs', name: 'Legs + Core (seated)', days: ['tue', 'fri'], parts: [['cardio', ['seated_vr']], ['legs', null], ['core', ['lean_back_hold', 'band_side_bend']]] },
+    { id: 'rt_p2_push', name: 'Push + Core (seated)', days: ['wed', 'sat'], parts: [['cardio', ['seated_vr']], ['push', null], ['core', ['band_press_out', 'band_rotation']]] },
+    { id: 'rt_p2_cardio', name: 'Cardio only (seated)', days: ['sun'], parts: [['cardio', ['seated_vr']]], cardioMin: 30 },
+  ],
+};
+
+// Make sure every program exercise exists (adds ones introduced after v1.0.0).
+async function ensureProgramExercises() {
+  const nowIso = new Date().toISOString();
+  const idMap = (await db.getSetting('programExerciseIds')) || {};
+  const exercises = await db.getAll('exercises');
+  const byName = new Map(exercises.map((e) => [(e.name || '').toLowerCase(), e]));
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const changed = new Set();
+  for (const [key, d] of Object.entries(EXDEFS)) {
+    if (idMap[key] && exById.get(idMap[key])) continue;
+    const found = byName.get((d.existing || d.name).toLowerCase());
+    if (found) { idMap[key] = found.id; continue; }
+    const rec = {
+      id: 'pg_' + key, name: d.name, category: d.cat, focus: d.cat, equipment: d.eq, cardioMachine: null,
+      primaryMuscles: [], secondaryMuscles: [], isCustom: true, notes: '', substituteIds: [], constraintFlags: [],
+      hevyTemplateId: null, guideKey: d.guideKey, createdAt: nowIso, updatedAt: nowIso,
+    };
+    exById.set(rec.id, rec); idMap[key] = rec.id; changed.add(rec.id);
+  }
+  for (const blocks of Object.values(BLOCKS)) for (const list of Object.values(blocks)) for (const e of list) {
+    const ex = exById.get(idMap[e.key]);
+    if (!ex) continue;
+    const alts = (e.alts || []).map((k) => idMap[k]).filter(Boolean);
+    const merged = [...new Set([...(ex.substituteIds || []), ...alts])];
+    if (merged.length !== (ex.substituteIds || []).length) { ex.substituteIds = merged; changed.add(ex.id); }
+  }
+  if (changed.size) await db.putMany('exercises', [...changed].map((id) => exById.get(id)));
+  await db.setSetting('programExerciseIds', idMap);
+}
+
+export async function migrateV103Routines() {
+  if (await db.get('meta', 'routines_v103')) return 0;
+  await ensureProgramExercises();
+  const nowIso = new Date().toISOString();
+  let made = 0;
+  for (const [phaseId, list] of Object.entries(ROUTINE_PLAN)) {
+    const blocks = await phaseBlocks(phaseId);
+    const ph = phaseById(phaseId);
+    for (const r of list) {
+      const exercises = [];
+      for (const [cat, keys] of r.parts) {
+        const entries = (blocks[cat] || []).filter((e) => !keys || keys.includes(e.key));
+        const ordered = keys ? keys.map((k) => entries.find((e) => e.key === k)).filter(Boolean) : entries;
+        for (let e of ordered) {
+          if (cat === 'cardio' && r.cardioMin) {
+            e = { ...e, lo: r.cardioMin, hi: r.cardioMin, note: 'Cardio-only day' };
+            e.target = targetText(e);
+          }
+          if (e.exerciseId) exercises.push(routineEntryFromBlock(e, exercises.length));
+        }
+      }
+      await db.put('routines', {
+        id: r.id, name: r.name, phaseId, scheduleDays: r.days, scheduleDates: [], scheduledDay: null,
+        scheduleFrom: ph.start, isActive: true, folderName: null, notes: '', exercises,
+        focusTags: [...new Set(r.parts.map(([c]) => c))], createdAt: nowIso, updatedAt: nowIso,
+      });
+      made++;
+    }
+  }
+  await db.put('meta', { key: 'routines_v103', value: { at: nowIso, made } });
+  return made;
 }
