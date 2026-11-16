@@ -18,8 +18,8 @@
 //    scheduled day costs 20 points and resets the streak. Distance is never lost.
 //  - Pause: paused days earn nothing and cost nothing; streak and totals are held.
 //  - Daily steps never move you along the trail.
-import * as db from './db.js?v=28';
-import { isScheduledOn } from './program.js?v=28';
+import * as db from './db.js?v=31';
+import { isScheduledOn } from './program.js?v=31';
 
 export const KM_PER_MI = 1.609344;
 export const FT_PER_M = 3.28084;

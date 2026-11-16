@@ -1,12 +1,12 @@
 // FORGE v1.0.0 · PLAN tab: program phases, blocks, daily routines, scheduling
-import * as db from './db.js?v=28';
+import * as db from './db.js?v=31';
 import {
   el, section, notFound, catBadge, focusTagEl, routineTags, toast, confirmModal, getActiveSession, todayIso, formatDuration,
-} from './ui.js?v=28';
+} from './ui.js?v=31';
 import {
   PHASES, phaseById, currentPhase, phaseCountdown, phaseBlocks, routinesOn, scheduleSummary,
   weekDates, shortDate, dayKeyOfIso, parseIso, CAT_LABEL,
-} from './program.js?v=28';
+} from './program.js?v=31';
 
 const BLOCK_ORDER = ['pull', 'legs', 'push', 'core', 'cardio', 'rehab'];
 
@@ -19,7 +19,7 @@ export function openSheet(title, bodyEl) {
   document.getElementById('inspector-scrim').hidden = false;
 }
 export function closeSheet() { document.getElementById('inspector-scrim').hidden = true; }
-async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=31'); m.refresh && m.refresh(); }
 
 // ---------- PLAN ----------
 export async function renderPlan(container, params) {
@@ -34,6 +34,29 @@ export async function renderPlan(container, params) {
     el('div', { class: 'eyebrow', text: 'PROGRAM  ·  ROAD TO THE INCA TRAIL' }),
     el('h1', { text: 'PLAN' }),
   ]));
+
+  // Next 7 days (starts today, so tomorrow's workout always shows)
+  const week = Array.from({ length: 7 }, (_, n) => { const d = parseIso(today); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+  const wList = el('div', { class: 'week-list' });
+  for (const d of week) {
+    const rs = routinesOn(active, d);
+    const isToday = d === today;
+    const row = el('div', { class: 'week-row' + (isToday ? ' week-row-today' : '') }, [
+      el('div', { class: 'week-row-day' }, [
+        el('div', { class: 'week-row-dow', text: dayKeyOfIso(d).toUpperCase() }),
+        el('div', { class: 'week-row-date', text: shortDate(d) }),
+      ]),
+      el('div', { class: 'week-row-main' }, rs.length
+        ? rs.map((r) => el('a', { class: 'week-row-routine', href: `#/routine/${r.id}` }, [
+          el('span', { text: r.name }),
+          el('span', { class: 'tag-row' }, routineTags(r, exById).map(focusTagEl)),
+        ]))
+        : [el('span', { class: 'week-row-empty', text: 'NOTHING PLANNED' })]),
+      el('button', { class: 'week-row-add', text: '+', 'aria-label': `Add a routine on ${shortDate(d)}`, onclick: () => openAddToDate(d, active) }),
+    ]);
+    wList.appendChild(row);
+  }
+  container.appendChild(section('NEXT 7 DAYS', wList));
 
   // Phase strip
   const strip = el('div', { class: 'phase-strip' });
@@ -97,29 +120,6 @@ export async function renderPlan(container, params) {
     el('span', { class: 'btn-sub', text: 'PICK FROM BLOCKS OR THE LIBRARY' }),
   ]));
   container.appendChild(section('DAILY ROUTINES', rList));
-
-  // This week
-  const week = weekDates(today);
-  const wList = el('div', { class: 'week-list' });
-  for (const d of week) {
-    const rs = routinesOn(active, d);
-    const isToday = d === today;
-    const row = el('div', { class: 'week-row' + (isToday ? ' week-row-today' : '') }, [
-      el('div', { class: 'week-row-day' }, [
-        el('div', { class: 'week-row-dow', text: dayKeyOfIso(d).toUpperCase() }),
-        el('div', { class: 'week-row-date', text: shortDate(d) }),
-      ]),
-      el('div', { class: 'week-row-main' }, rs.length
-        ? rs.map((r) => el('a', { class: 'week-row-routine', href: `#/routine/${r.id}` }, [
-          el('span', { text: r.name }),
-          el('span', { class: 'tag-row' }, routineTags(r, exById).map(focusTagEl)),
-        ]))
-        : [el('span', { class: 'week-row-empty', text: 'NOTHING PLANNED' })]),
-      el('button', { class: 'week-row-add', text: '+', 'aria-label': `Add a routine on ${shortDate(d)}`, onclick: () => openAddToDate(d, active) }),
-    ]);
-    wList.appendChild(row);
-  }
-  container.appendChild(section('THIS WEEK', wList));
 
   // Actions
   container.appendChild(section('ACTIONS', el('div', { class: 'action-grid' }, [
@@ -302,7 +302,7 @@ function openAddToDate(iso, routines) {
 async function onQuickWorkout() {
   const active = await getActiveSession();
   if (active) { toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
-  const { startSession } = await import('./workout.js?v=28');
+  const { startSession } = await import('./workout.js?v=31');
   const s = await startSession({ id: null, name: 'QUICK WORKOUT', scheduledDay: null, exercises: [] });
   window.location.hash = `#/session/${s.id}`;
 }
@@ -319,7 +319,7 @@ export function openLogPast(routines) {
       if (!dateIn.value) { toast('PICK A DATE', 'error'); return; }
       const active = await getActiveSession();
       if (active) { closeSheet(); toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
-      const { startSession } = await import('./workout.js?v=28');
+      const { startSession } = await import('./workout.js?v=31');
       const s = await startSession(r, { logDate: dateIn.value });
       closeSheet();
       window.location.hash = `#/session/${s.id}`;

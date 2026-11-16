@@ -1,15 +1,15 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=28';
-import { importBundledHevyBackup } from './import.js?v=28';
-import { toast, startSentenceCase } from './ui.js?v=28';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderMe, renderTrail, renderBlock, renderProgress } from './screens.js?v=28';
-import { migrateV100, migrateV101FreshStart, migrateV103Routines } from './program.js?v=28';
-import { renderSession } from './workout.js?v=28';
-import { renderBody } from './body.js?v=28';
-import { renderGoals } from './goals.js?v=28';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=28';
+import * as db from './db.js?v=31';
+import { importBundledHevyBackup } from './import.js?v=31';
+import { toast, startSentenceCase } from './ui.js?v=31';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderMe, renderTrail, renderBlock, renderProgress } from './screens.js?v=31';
+import { migrateV100, migrateV101FreshStart, migrateV103Routines, migrateV105Alternatives } from './program.js?v=31';
+import { renderSession } from './workout.js?v=31';
+import { renderBody } from './body.js?v=31';
+import { renderGoals } from './goals.js?v=31';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=31';
 
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.6';
 
 const ROUTES = {
   '/home':     renderHome,
@@ -73,7 +73,7 @@ async function handleRoute() {
 // v0.9.0 · Trail points in the header, on every screen.
 async function updatePointsPill() {
   try {
-    const { getStatus } = await import('./trail.js?v=28');
+    const { getStatus } = await import('./trail.js?v=31');
     const t = await getStatus();
     const pill = document.getElementById('topbar-points');
     if (pill) { pill.textContent = `${t.points} PTS`; pill.hidden = false; }
@@ -113,6 +113,7 @@ async function boot() {
     const mig = await migrateV100();
     const fresh = await migrateV101FreshStart();
     await migrateV103Routines();
+    await migrateV105Alternatives();
     if (mig || fresh) toast('FORGE 1.0 · Fresh start · Trail begins Nov 16', 'ok', 4000);
     await applyTheme();
     await checkBackupReminder();
@@ -130,7 +131,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=28');
+  const { inferFocus } = await import('./import.js?v=31');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -147,7 +148,7 @@ async function migrateV072() {
 async function migrateV074() {
   const done = await db.get('meta', 'migrated_v074');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=28');
+  const { inferFocus } = await import('./import.js?v=31');
   const exs = await db.getAll('exercises');
   let changed = 0;
   for (const e of exs) {
@@ -169,7 +170,7 @@ async function migrateV074() {
 async function migrateV090() {
   const done = await db.get('meta', 'migrated_v090');
   if (done) return;
-  const { localIso, DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS } = await import('./trail.js?v=28');
+  const { localIso, DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS } = await import('./trail.js?v=31');
   await db.setSetting('theme', 'light');
   if (!(await db.getSetting('trailStartDate'))) await db.setSetting('trailStartDate', localIso(new Date()));
   if (!(await db.getSetting('hrCalibration'))) await db.setSetting('hrCalibration', DEFAULT_CALIBRATION);

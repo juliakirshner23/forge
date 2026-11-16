@@ -1,10 +1,10 @@
 // FORGE routine editor
-import * as db from './db.js?v=28';
+import * as db from './db.js?v=31';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, routineTags, uid, toast, confirmModal, openPicker, todayIso,
-} from './ui.js?v=28';
-import { PHASES, currentPhase, routineEntryFromBlock } from './program.js?v=28';
+} from './ui.js?v=31';
+import { PHASES, currentPhase, routineEntryFromBlock } from './program.js?v=31';
 
 export async function renderRoutineEditor(container, existing, phaseIdForNew) {
   const isEdit = !!existing;
@@ -68,7 +68,7 @@ export async function renderRoutineEditor(container, existing, phaseIdForNew) {
     el('span', { class: 'btn-sub', text: 'TICK EXERCISES FROM PULL, LEGS, PUSH, CORE, CARDIO' }),
   ]);
   fromBlocks.addEventListener('click', async () => {
-    const { openBlockPicker } = await import('./plan.js?v=28');
+    const { openBlockPicker } = await import('./plan.js?v=31');
     const ph = form.querySelector('[name="phaseId"]').value || currentPhase(todayIso()).id;
     openBlockPicker(ph, (entries) => {
       for (const e of entries) {
@@ -291,7 +291,7 @@ function removeSet(ex, rerender) {
 }
 
 async function addExerciseToRoutine(model, rerender, exById) {
-  const { openExercisePicker } = await import('./exercise-picker.js?v=28');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=31');
   openExercisePicker('ADD EXERCISE', (ex) => {
     exById.set(ex.id, ex);
     model.exercises.push(routineEntryFor(ex, model.exercises.length));

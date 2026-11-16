@@ -49,6 +49,20 @@ export const EXDEFS = {
   "existing": null,
   "guideKey": "face-pull-cable"
  },
+ "db_pullover": {
+  "name": "Dumbbell Pullover",
+  "cat": "pull",
+  "eq": "Dumbbell",
+  "existing": null,
+  "guideKey": "dumbbell-pullover"
+ },
+ "seated_rear_delt_raise": {
+  "name": "Seated Bent-Over Rear Delt Raise",
+  "cat": "pull",
+  "eq": "Dumbbell",
+  "existing": null,
+  "guideKey": "seated-bent-over-rear-delt-raise"
+ },
  "band_face_pull": {
   "name": "Band Face Pull",
   "cat": "pull",
@@ -498,7 +512,7 @@ export const PHASE1_BLOCKS = {
    "unit": "reps",
    "note": "",
    "alts": [
-    "one_arm_pulldown",
+    "db_pullover",
     "band_pulldown"
    ]
   },
@@ -510,7 +524,7 @@ export const PHASE1_BLOCKS = {
    "unit": "reps",
    "note": "",
    "alts": [
-    "one_arm_pulldown",
+    "db_pullover",
     "band_pulldown"
    ]
   },
@@ -522,8 +536,8 @@ export const PHASE1_BLOCKS = {
    "unit": "reps",
    "note": "",
    "alts": [
-    "cs_machine_row",
-    "cs_db_row"
+    "cs_db_row",
+    "band_row"
    ]
   },
   {
@@ -534,8 +548,8 @@ export const PHASE1_BLOCKS = {
    "unit": "reps",
    "note": "",
    "alts": [
-    "band_face_pull",
-    "reverse_pec_deck"
+    "seated_rear_delt_raise",
+    "band_face_pull"
    ]
   },
   {
@@ -634,7 +648,7 @@ export const PHASE1_BLOCKS = {
    "note": "",
    "alts": [
     "machine_chest_press",
-    "cable_chest_press"
+    "band_chest_press"
    ]
   },
   {
@@ -654,7 +668,8 @@ export const PHASE1_BLOCKS = {
    "unit": "reps",
    "note": "",
    "alts": [
-    "machine_shoulder_press"
+    "machine_shoulder_press",
+    "band_overhead_press"
    ]
   },
   {
@@ -666,7 +681,7 @@ export const PHASE1_BLOCKS = {
    "note": "",
    "alts": [
     "db_triceps_ext",
-    "band_pushdown"
+    "band_overhead_triceps"
    ]
   },
   {

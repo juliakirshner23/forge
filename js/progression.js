@@ -317,7 +317,7 @@ let _suggestCache = null;
 export async function exerciseSuggestion(exerciseId) {
   if (!exerciseId) return null;
   if (!_suggestCache || Date.now() - _suggestCache.at > 5000) {
-    const db = await import('./db.js?v=28');
+    const db = await import('./db.js?v=31');
     const [sessions, sensitivity] = await Promise.all([
       db.getAll('sessions'), db.getSetting('promptSensitivity', 'balanced'),
     ]);

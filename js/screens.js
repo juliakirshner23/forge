@@ -1,18 +1,18 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=28';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=28';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=28';
+import * as db from './db.js?v=31';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=31';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=31';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
   catBadge, focusTagEl, progressBar, routineTags, localDay, todayIso,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=28';
-import { exerciseSuggestion } from './progression.js?v=28';
-import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=28';
-import { icon } from './icons.js?v=28';
-import { CAT_LABEL, routinesOn, weekDates, scheduleSummary, guideFor, targetsForExercise, phaseById, dayKeyOfIso } from './program.js?v=28';
+} from './ui.js?v=31';
+import { exerciseSuggestion } from './progression.js?v=31';
+import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=31';
+import { icon } from './icons.js?v=31';
+import { CAT_LABEL, routinesOn, weekDates, scheduleSummary, guideFor, targetsForExercise, phaseById, dayKeyOfIso } from './program.js?v=31';
 
 function suggestionNoteEl(sg) {
   return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
@@ -117,8 +117,8 @@ export function trailMapSvg(distKm) {
     <circle cx="${mapX(19).toFixed(1)}" cy="${mapY(4215).toFixed(1)}" r="3.5" class="tm-high"/>
     <circle cx="${mapX(44).toFixed(1)}" cy="${mapY(2430).toFixed(1)}" r="3.5" class="tm-end"/>
     <circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="5.5" class="tm-you"/>
-    <text x="${(mapX(19) - 4).toFixed(1)}" y="14" text-anchor="end" class="tm-label tm-label-high">4,215 M</text>
-    <text x="${(mapX(24) + 4).toFixed(1)}" y="22" class="tm-label">3,950 M</text>
+    <text x="${(mapX(19) - 4).toFixed(1)}" y="14" text-anchor="end" class="tm-label tm-label-high">4,215 m</text>
+    <text x="${(mapX(24) + 4).toFixed(1)}" y="22" class="tm-label">3,950 m</text>
     <text x="6" y="108" class="tm-label">START</text>
     <text x="${MAP_W - 4}" y="108" text-anchor="end" class="tm-label">MACHU PICCHU</text>
   </svg>`;
@@ -160,6 +160,10 @@ export async function renderTrail(container) {
     el('h1', { text: TRAIL.name }),
     t.pausedToday ? el('p', { class: 'hero-sub', text: 'PAUSED · NO PENALTIES · EVERYTHING HELD. RESUME IN ME (GEAR ICON).' }) : null,
   ]));
+
+  const mapBox = el('div', { class: 'trail-card' });
+  mapBox.innerHTML = trailMapSvg(t.distKm);
+  container.appendChild(section('YOUR POSITION', mapBox));
 
   const totalMi = TRAIL.totalKm / KM_PER_MI;
   const totalFt = Math.round(TRAIL.gainM * 3.28084);
@@ -215,7 +219,7 @@ async function renderRecentPrsCard(session) {
 }
 
 async function caloriesCardSection() {
-  const { exerciseKcalForDate, foodKcalForDate, latestBodyWeightLb } = await import('./food.js?v=28');
+  const { exerciseKcalForDate, foodKcalForDate, latestBodyWeightLb } = await import('./food.js?v=31');
   const today = todayIso();
   const exercises = await db.getAll('exercises');
   const exIndex = new Map(exercises.map((e) => [e.id, e]));
@@ -271,13 +275,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=28'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=31'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=28');
+    const { toast } = await import('./ui.js?v=31');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -406,11 +410,11 @@ function countdownCard(label, targetDate, sub) {
 
 // ---------- PLAN ----------
 export async function renderPlan(container, params) {
-  const m = await import('./plan.js?v=28');
+  const m = await import('./plan.js?v=31');
   return m.renderPlan(container, params);
 }
 export async function renderBlock(container, params) {
-  const m = await import('./plan.js?v=28');
+  const m = await import('./plan.js?v=31');
   return m.renderBlock(container, params);
 }
 
@@ -418,13 +422,13 @@ export async function renderBlock(container, params) {
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=28');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=31');
     return renderRoutineEditor(container, null, action || null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=28');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=31');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -474,7 +478,7 @@ async function renderRoutineDetail(container, routine) {
     el('span', { class: 'btn-title', text: 'ADD TO DAY' }),
     el('span', { class: 'btn-sub', text: 'REPEAT ON WEEKDAYS OR PICK DATES' }),
   ]);
-  schedBtn.addEventListener('click', async () => { const m = await import('./plan.js?v=28'); m.openScheduleSheet(routine); });
+  schedBtn.addEventListener('click', async () => { const m = await import('./plan.js?v=31'); m.openScheduleSheet(routine); });
   const editBtn = el('a', { class: 'btn btn-outline', href: `#/routine/${routine.id}/edit` }, [
     el('span', { class: 'btn-title', text: 'EDIT ROUTINE' }),
     el('span', { class: 'btn-sub', text: 'CHANGE EXERCISES, SETS, NAME, PHASE' }),
@@ -483,7 +487,7 @@ async function renderRoutineDetail(container, routine) {
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=28');
+  const { startSession } = await import('./workout.js?v=31');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -580,7 +584,7 @@ export async function renderLibrary(container) {
 
   container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
     el('button', { class: 'btn btn-primary', onclick: async () => {
-      const { openExercisePicker } = await import('./exercise-picker.js?v=28');
+      const { openExercisePicker } = await import('./exercise-picker.js?v=31');
       openExercisePicker('ADD FROM CATALOG', (ex) => { window.location.hash = `#/exercise/${ex.id}`; }, { startTab: 'catalog' });
     } }, [
       el('span', { class: 'btn-title', text: '+ ADD FROM CATALOG' }),
@@ -631,21 +635,61 @@ function libraryRow(ex, useCount) {
 }
 
 export async function renderExercise(container, params) {
-  const [idOrNew, action] = params;
+  const [idOrNew, action, sid, sidx] = params;
   if (idOrNew === 'new') return renderExerciseForm(container, null);
   const exercise = await db.get('exercises', idOrNew);
   if (!exercise) { container.appendChild(notFound('EXERCISE NOT FOUND', '#/library', 'LIBRARY')); return; }
   if (action === 'edit') return renderExerciseForm(container, exercise);
-  return renderExerciseDetail(container, exercise);
+  let ctx = null;
+  if (action === 'session' && sid) {
+    const ses = await db.get('sessions', sid);
+    if (ses && ses.isActive) ctx = { session: ses, idx: Number(sidx) || 0 };
+  }
+  return renderExerciseDetail(container, exercise, ctx);
 }
 
-async function renderExerciseDetail(container, ex) {
+async function useInWorkout(ctx, exId) {
+  const { swapSessionExercise } = await import('./workout.js?v=31');
+  await swapSessionExercise(ctx.session.id, ctx.idx, exId);
+  window.location.hash = `#/session/${ctx.session.id}`;
+}
+
+// Full-screen photo viewer: tap a photo to enlarge, tap Start/Finish to flip, tap outside or × to close.
+function openPhotoViewer(imgs, start, name) {
+  let i = start;
+  const img = el('img', { class: 'pv-img', alt: name });
+  const label = el('div', { class: 'pv-label' });
+  const tabs = el('div', { class: 'pv-tabs' }, imgs.map((_, k) =>
+    el('button', { class: 'pv-tab', text: k === 0 ? 'START' : 'FINISH', onclick: (e) => { e.stopPropagation(); show(k); } })));
+  function show(k) {
+    i = k; img.src = imgs[k];
+    label.textContent = `${name} · ${k === 0 ? 'start' : 'finish'}`;
+    [...tabs.children].forEach((b, n) => b.classList.toggle('on', n === k));
+  }
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e) => { if (e.key === 'Escape') close(); if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') show((i + 1) % imgs.length); };
+  let x0 = null;
+  const ov = el('div', { class: 'photo-viewer', 'data-keep-case': '', onclick: close }, [
+    el('button', { class: 'pv-close', text: '×', 'aria-label': 'Close', onclick: close }),
+    el('div', { class: 'pv-frame', onclick: (e) => { e.stopPropagation(); if (imgs.length > 1) show((i + 1) % imgs.length); } }, [img]),
+    label, imgs.length > 1 ? tabs : null,
+  ]);
+  ov.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  ov.addEventListener('touchend', (e) => { if (x0 == null || imgs.length < 2) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) show((i + 1) % imgs.length); x0 = null; });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(ov);
+  show(i);
+}
+
+async function renderExerciseDetail(container, ex, ctx = null) {
   const routines = await db.getAll('routines');
   const uses = routines.filter((r) => (r.exercises || []).some((e) => e.exerciseId === ex.id));
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/library', class: 'crumb', text: '‹ LIBRARY' }),
+      ctx
+        ? el('a', { href: `#/session/${ctx.session.id}`, class: 'crumb', text: '‹ BACK TO WORKOUT' })
+        : el('a', { href: '#/library', class: 'crumb', text: '‹ BACK', onclick: (e) => { if (history.length > 1) { e.preventDefault(); history.back(); } } }),
       el('span', { text: `  ·  ${CAT_LABEL[ex.category] || 'OTHER'}` }),
       uses.length > 0 ? el('span', { text: `  ·  IN ${uses.length} ROUTINE${uses.length === 1 ? '' : 'S'}` }) : null,
     ]),
@@ -660,13 +704,28 @@ async function renderExerciseDetail(container, ex) {
       : el('span', { class: 'tag tag-safe', text: '◉ PT SAFE' }),
   ]));
 
+  if (ctx) {
+    const cur = ctx.session.exercises?.[ctx.idx];
+    if (cur && cur.exerciseId !== ex.id) {
+      container.appendChild(section(`IN YOUR WORKOUT: ${(cur.exerciseName || '').toUpperCase()}`, el('div', { class: 'action-stack' }, [
+        el('button', { class: 'btn btn-primary', onclick: () => useInWorkout(ctx, ex.id) }, [
+          el('span', { class: 'btn-title', text: 'USE THIS INSTEAD' }),
+          el('span', { class: 'btn-sub', text: 'SWAPS IT IN FOR THIS WORKOUT AND TAKES YOU BACK TO LOG SETS' }),
+        ]),
+      ])));
+    }
+  }
+
   const guide = await guideFor(ex);
   if (guide && guide.img && guide.img.length) {
-    container.appendChild(section('HOW IT LOOKS', el('div', { class: 'guide-photos' }, guide.img.map((src, i) =>
-      el('figure', { class: 'guide-photo' }, [
-        el('img', { src, alt: `${ex.name} ${i === 0 ? 'start' : 'finish'} position`, loading: 'lazy' }),
-        el('figcaption', { text: i === 0 ? 'START' : 'FINISH' }),
-      ])))));
+    container.appendChild(section('HOW IT LOOKS', el('div', {}, [
+      el('div', { class: 'guide-photos' }, guide.img.map((src, i) =>
+        el('figure', { class: 'guide-photo' }, [
+          el('img', { src, alt: `${ex.name} ${i === 0 ? 'start' : 'finish'} position`, loading: 'lazy', onclick: () => openPhotoViewer(guide.img, i, ex.name) }),
+          el('figcaption', { text: i === 0 ? 'START' : 'FINISH' }),
+        ]))),
+      el('p', { class: 'guide-hint', text: 'TAP A PHOTO TO ENLARGE' }),
+    ])));
   }
   const steps = (guide && guide.ins && guide.ins.length) ? guide.ins : (ex.instructions || []);
   if (steps.length) container.appendChild(section('HOW TO DO IT', el('ol', { class: 'howto-list' }, steps.map((t) => el('li', { text: t })))));
@@ -682,9 +741,12 @@ async function renderExerciseDetail(container, ex) {
   const alts = (ex.substituteIds || []).map((id) => allEx.find((e) => e.id === id)).filter(Boolean);
   if (alts.length) {
     container.appendChild(section('MACHINE TAKEN? ALTERNATIVES', el('div', {}, alts.map((a) =>
-      el('a', { class: 'nav-row', href: `#/exercise/${a.id}` }, [
-        el('div', { class: 'nav-row-main' }, [ el('div', { class: 'nav-row-title', text: a.name }), el('div', { class: 'nav-row-sub', text: (a.equipment || 'BODYWEIGHT').toUpperCase() }) ]),
-        el('div', { class: 'nav-row-arrow', text: '›' }),
+      el('div', { class: 'alt-row' }, [
+        el('a', { class: 'nav-row alt-row-main', href: ctx ? `#/exercise/${a.id}/session/${ctx.session.id}/${ctx.idx}` : `#/exercise/${a.id}` }, [
+          el('div', { class: 'nav-row-main' }, [ el('div', { class: 'nav-row-title', text: a.name }), el('div', { class: 'nav-row-sub', text: (a.equipment || 'BODYWEIGHT').toUpperCase() + '  ·  TAP FOR INSTRUCTIONS' }) ]),
+          el('div', { class: 'nav-row-arrow', text: '›' }),
+        ]),
+        ctx ? el('button', { class: 'btn-mini alt-use', text: 'USE', onclick: () => useInWorkout(ctx, a.id) }) : null,
       ])))));
   }
 
@@ -847,7 +909,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=28');
+  const { renderStatsPage } = await import('./stats.js?v=31');
   return renderStatsPage(container, params);
 }
 
@@ -859,7 +921,7 @@ export async function renderMe(container) {
   ]);
 
   // Settings (profile, units, targets, trail, training, app), then data.
-  const { renderSettings } = await import('./settings.js?v=28');
+  const { renderSettings } = await import('./settings.js?v=31');
   await renderSettings(container);
 
   const grid = el('div', { class: 'stat-grid' });
@@ -898,7 +960,7 @@ export async function renderMe(container) {
     const pct = ((est.usage / est.quota) * 100).toFixed(2);
     storageText = `${usedMb} MB USED  ·  ${quotaMb} MB AVAILABLE  ·  ${pct}%`;
   }
-  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `FORGE v1.0.3  ·  Storage: ${storageText}` }) ]));
+  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `FORGE v1.0.6  ·  Storage: ${storageText}` }) ]));
 }
 
 // ---------- PROGRESS: history · charts · body · goals ----------
@@ -912,13 +974,13 @@ export async function renderProgress(container, params) {
   container.appendChild(el('section', { class: 'section' }, [el('div', { class: 'seg-bar' },
     PROGRESS_SEGS.map(([k, label]) => el('a', { class: 'seg' + (k === seg ? ' seg-on' : ''), href: `#/progress/${k}`, text: label })))]));
   const inner = el('div', {});
-  if (seg === 'history') { const m = await import('./history.js?v=28'); await m.renderHistory(inner); }
-  else if (seg === 'charts') { const m = await import('./stats.js?v=28'); await m.renderStatsPage(inner, [], { embedded: true, skipBody: true }); }
+  if (seg === 'history') { const m = await import('./history.js?v=31'); await m.renderHistory(inner); }
+  else if (seg === 'charts') { const m = await import('./stats.js?v=31'); await m.renderStatsPage(inner, [], { embedded: true, skipBody: true }); }
   else if (seg === 'body') {
-    const [{ renderBody }, { renderBodyMeasurementCharts }] = await Promise.all([import('./body.js?v=28'), import('./stats.js?v=28')]);
+    const [{ renderBody }, { renderBodyMeasurementCharts }] = await Promise.all([import('./body.js?v=31'), import('./stats.js?v=31')]);
     inner.appendChild(await renderBodyMeasurementCharts(await db.getAll('bodyMeasurements')));
     await renderBody(inner, []);
-  } else { const m = await import('./goals.js?v=28'); await m.renderGoals(inner, []); }
+  } else { const m = await import('./goals.js?v=31'); await m.renderGoals(inner, []); }
   inner.querySelectorAll(':scope > section.hero').forEach((h) => h.remove());
   container.append(...inner.childNodes);
 }
@@ -948,7 +1010,7 @@ function onClearClick() {
     catch (err) { console.error(err); toast('CLEAR FAILED · ' + err.message, 'error'); }
   });
 }
-async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=31'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

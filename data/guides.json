@@ -9,8 +9,8 @@
 "Repeat for the prescribed number of repetitions."
 ],
 "img": [
-"img/ex/v-bar-pulldown-0.jpg",
-"img/ex/v-bar-pulldown-1.jpg"
+"img/ex/v-bar-pulldown-0.jpg?v=2",
+"img/ex/v-bar-pulldown-1.jpg?v=2"
 ]
 },
 "lat-pulldown-cable": {
@@ -23,8 +23,8 @@
 "Repeat this motion for the prescribed amount of repetitions."
 ],
 "img": [
-"img/ex/wide-grip-lat-pulldown-0.jpg",
-"img/ex/wide-grip-lat-pulldown-1.jpg"
+"img/ex/wide-grip-lat-pulldown-0.jpg?v=2",
+"img/ex/wide-grip-lat-pulldown-1.jpg?v=2"
 ]
 },
 "single-arm-cable-pulldown": {
@@ -35,8 +35,8 @@
 "For multiple repetitions, avoid completely returning the weight to keep tension on the muscles being worked."
 ],
 "img": [
-"img/ex/one-arm-lat-pulldown-0.jpg",
-"img/ex/one-arm-lat-pulldown-1.jpg"
+"img/ex/one-arm-lat-pulldown-0.jpg?v=2",
+"img/ex/one-arm-lat-pulldown-1.jpg?v=2"
 ]
 },
 "seated-cable-row-v-grip-cable": {
@@ -48,8 +48,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/seated-cable-rows-0.jpg",
-"img/ex/seated-cable-rows-1.jpg"
+"img/ex/seated-cable-rows-0.jpg?v=2",
+"img/ex/seated-cable-rows-1.jpg?v=2"
 ]
 },
 "chest-supported-machine-row": {
@@ -59,8 +59,8 @@
 "Pause at the bottom of the motion, and then slowly return the handles to the starting position. For multiple repetitions, avoid completely returning the weight to the stops to keep tension on the muscles being worked."
 ],
 "img": [
-"img/ex/leverage-iso-row-0.jpg",
-"img/ex/leverage-iso-row-1.jpg"
+"img/ex/leverage-iso-row-0.jpg?v=2",
+"img/ex/leverage-iso-row-1.jpg?v=2"
 ]
 },
 "chest-supported-dumbbell-row": {
@@ -71,8 +71,8 @@
 "Pause at the top of the motion, and then return to the starting position."
 ],
 "img": [
-"img/ex/dumbbell-incline-row-0.jpg",
-"img/ex/dumbbell-incline-row-1.jpg"
+"img/ex/dumbbell-incline-row-0.jpg?v=2",
+"img/ex/dumbbell-incline-row-1.jpg?v=2"
 ]
 },
 "face-pull-cable": {
@@ -80,8 +80,31 @@
 "Facing a high pulley with a rope or dual handles attached, pull the weight directly towards your face, separating your hands as you do so. Keep your upper arms parallel to the ground."
 ],
 "img": [
-"img/ex/face-pull-0.jpg",
-"img/ex/face-pull-1.jpg"
+"img/ex/face-pull-0.jpg?v=2",
+"img/ex/face-pull-1.jpg?v=2"
+]
+},
+"dumbbell-pullover": {
+"ins": [
+"Lie lengthwise on a flat bench, head supported, feet flat on the floor.",
+"Hold one dumbbell with both hands over your chest, arms almost straight.",
+"Lower the dumbbell back over your head in an arc until you feel a stretch along your sides.",
+"Pull it back over your chest using your back muscles."
+],
+"img": []
+},
+"seated-bent-over-rear-delt-raise": {
+"ins": [
+"Place a couple of dumbbells looking forward in front of a flat bench.",
+"Sit on the end of the bench with your legs together and the dumbbells behind your calves.",
+"Bend at the waist while keeping the back straight in order to pick up the dumbbells. The palms of your hands should be facing each other as you pick them. This will be your starting position.",
+"Keeping your torso forward and stationary, and the arms slightly bent at the elbows, lift the dumbbells straight to the side until both arms are parallel to the floor. Exhale as you lift the weights. (Note: avoid swinging the torso or bringing the arms back as opposed to the side.)",
+"After a one second contraction at the top, slowly lower the dumbbells back to the starting position.",
+"Repeat for the recommended amount of repetitions."
+],
+"img": [
+"img/ex/seated-bent-over-rear-delt-raise-0.jpg?v=2",
+"img/ex/seated-bent-over-rear-delt-raise-1.jpg?v=2"
 ]
 },
 "band-face-pull": {
@@ -101,8 +124,8 @@
 "Pause at the rear of the movement, and slowly return the weight to the starting position."
 ],
 "img": [
-"img/ex/reverse-machine-flyes-0.jpg",
-"img/ex/reverse-machine-flyes-1.jpg"
+"img/ex/reverse-machine-flyes-0.jpg?v=2",
+"img/ex/reverse-machine-flyes-1.jpg?v=2"
 ]
 },
 "bicep-curl-dumbbell": {
@@ -113,8 +136,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/dumbbell-bicep-curl-0.jpg",
-"img/ex/dumbbell-bicep-curl-1.jpg"
+"img/ex/dumbbell-bicep-curl-0.jpg?v=2",
+"img/ex/dumbbell-bicep-curl-1.jpg?v=2"
 ]
 },
 "cable-curl": {
@@ -125,8 +148,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/standing-biceps-cable-curl-0.jpg",
-"img/ex/standing-biceps-cable-curl-1.jpg"
+"img/ex/standing-biceps-cable-curl-0.jpg?v=2",
+"img/ex/standing-biceps-cable-curl-1.jpg?v=2"
 ]
 },
 "seated-band-curl": {
@@ -173,8 +196,8 @@
 "Pause as you complete the movement, returning to the starting position under control."
 ],
 "img": [
-"img/ex/band-pull-apart-0.jpg",
-"img/ex/band-pull-apart-1.jpg"
+"img/ex/band-pull-apart-0.jpg?v=2",
+"img/ex/band-pull-apart-1.jpg?v=2"
 ]
 },
 "machine-chest-press": {
@@ -185,8 +208,8 @@
 "After a brief pause at the top, return the weight just above the start position, keeping tension on the muscles by not returning the weight to the stops until the set is complete."
 ],
 "img": [
-"img/ex/leverage-chest-press-0.jpg",
-"img/ex/leverage-chest-press-1.jpg"
+"img/ex/leverage-chest-press-0.jpg?v=2",
+"img/ex/leverage-chest-press-1.jpg?v=2"
 ]
 },
 "bench-press-dumbbell": {
@@ -198,8 +221,8 @@
 "Repeat the movement for the prescribed amount of repetitions of your training program."
 ],
 "img": [
-"img/ex/dumbbell-bench-press-0.jpg",
-"img/ex/dumbbell-bench-press-1.jpg"
+"img/ex/dumbbell-bench-press-0.jpg?v=2",
+"img/ex/dumbbell-bench-press-1.jpg?v=2"
 ]
 },
 "cable-chest-press": {
@@ -210,8 +233,8 @@
 "You can also execute this movement with your back off the pad, at an incline or decline, or alternate hands."
 ],
 "img": [
-"img/ex/cable-chest-press-0.jpg",
-"img/ex/cable-chest-press-1.jpg"
+"img/ex/cable-chest-press-0.jpg?v=2",
+"img/ex/cable-chest-press-1.jpg?v=2"
 ]
 },
 "incline-push-ups": {
@@ -221,8 +244,8 @@
 "Push body up until arms are extended. Repeat."
 ],
 "img": [
-"img/ex/incline-push-up-0.jpg",
-"img/ex/incline-push-up-1.jpg"
+"img/ex/incline-push-up-0.jpg?v=2",
+"img/ex/incline-push-up-1.jpg?v=2"
 ]
 },
 "machine-shoulder-press": {
@@ -232,8 +255,8 @@
 "After a brief pause at the top, return the weight to just above the start position, keeping tension on the muscles by not returning the weight to the stops until the set is complete."
 ],
 "img": [
-"img/ex/leverage-shoulder-press-0.jpg",
-"img/ex/leverage-shoulder-press-1.jpg"
+"img/ex/leverage-shoulder-press-0.jpg?v=2",
+"img/ex/leverage-shoulder-press-1.jpg?v=2"
 ]
 },
 "shoulder-press-dumbbell": {
@@ -246,8 +269,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/dumbbell-shoulder-press-0.jpg",
-"img/ex/dumbbell-shoulder-press-1.jpg"
+"img/ex/dumbbell-shoulder-press-0.jpg?v=2",
+"img/ex/dumbbell-shoulder-press-1.jpg?v=2"
 ]
 },
 "triceps-pushdown-cable": {
@@ -259,8 +282,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/triceps-pushdown-0.jpg",
-"img/ex/triceps-pushdown-1.jpg"
+"img/ex/triceps-pushdown-0.jpg?v=2",
+"img/ex/triceps-pushdown-1.jpg?v=2"
 ]
 },
 "triceps-extension-dumbbell": {
@@ -271,8 +294,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/seated-triceps-press-0.jpg",
-"img/ex/seated-triceps-press-1.jpg"
+"img/ex/seated-triceps-press-0.jpg?v=2",
+"img/ex/seated-triceps-press-1.jpg?v=2"
 ]
 },
 "band-triceps-pushdown": {
@@ -292,8 +315,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/side-lateral-raise-0.jpg",
-"img/ex/side-lateral-raise-1.jpg"
+"img/ex/side-lateral-raise-0.jpg?v=2",
+"img/ex/side-lateral-raise-1.jpg?v=2"
 ]
 },
 "cable-lateral-raise": {
@@ -307,8 +330,8 @@
 "Repeat for the recommended amount of repetitions. Tip: Maintain upper arms perpendicular to torso and a fixed elbow position (10 degree to 30 degree angle) throughout exercise."
 ],
 "img": [
-"img/ex/cable-seated-lateral-raise-0.jpg",
-"img/ex/cable-seated-lateral-raise-1.jpg"
+"img/ex/cable-seated-lateral-raise-0.jpg?v=2",
+"img/ex/cable-seated-lateral-raise-1.jpg?v=2"
 ]
 },
 "iyt": {
@@ -365,8 +388,8 @@
 "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
 ],
 "img": [
-"img/ex/leg-press-0.jpg",
-"img/ex/leg-press-1.jpg"
+"img/ex/leg-press-0.jpg?v=2",
+"img/ex/leg-press-1.jpg?v=2"
 ]
 },
 "single-leg-leg-extension-left": {
@@ -377,8 +400,8 @@
 "Repeat for the desired number of repetitions."
 ],
 "img": [
-"img/ex/single-leg-leg-extension-0.jpg",
-"img/ex/single-leg-leg-extension-1.jpg"
+"img/ex/single-leg-leg-extension-0.jpg?v=2",
+"img/ex/single-leg-leg-extension-1.jpg?v=2"
 ]
 },
 "single-leg-seated-hamstring-curl-left": {
@@ -390,8 +413,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/seated-leg-curl-0.jpg",
-"img/ex/seated-leg-curl-1.jpg"
+"img/ex/seated-leg-curl-0.jpg?v=2",
+"img/ex/seated-leg-curl-1.jpg?v=2"
 ]
 },
 "light-leg-press-right": {
@@ -403,8 +426,8 @@
 "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
 ],
 "img": [
-"img/ex/leg-press-0.jpg",
-"img/ex/leg-press-1.jpg"
+"img/ex/leg-press-0.jpg?v=2",
+"img/ex/leg-press-1.jpg?v=2"
 ]
 },
 "light-leg-extension-right": {
@@ -415,8 +438,8 @@
 "Repeat for the recommended amount of times."
 ],
 "img": [
-"img/ex/leg-extensions-0.jpg",
-"img/ex/leg-extensions-1.jpg"
+"img/ex/leg-extensions-0.jpg?v=2",
+"img/ex/leg-extensions-1.jpg?v=2"
 ]
 },
 "back-extension": {
@@ -429,8 +452,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/hyperextensions-back-extensions-0.jpg",
-"img/ex/hyperextensions-back-extensions-1.jpg"
+"img/ex/hyperextensions-back-extensions-0.jpg?v=2",
+"img/ex/hyperextensions-back-extensions-1.jpg?v=2"
 ]
 },
 "seated-back-extension-machine": {
@@ -451,8 +474,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/calf-press-on-the-leg-press-machine-0.jpg",
-"img/ex/calf-press-on-the-leg-press-machine-1.jpg"
+"img/ex/calf-press-on-the-leg-press-machine-0.jpg?v=2",
+"img/ex/calf-press-on-the-leg-press-machine-1.jpg?v=2"
 ]
 },
 "seated-left-leg-band-press": {
@@ -510,8 +533,8 @@
 "At the conclusion of the set, repeat facing the other direction."
 ],
 "img": [
-"img/ex/pallof-press-0.jpg",
-"img/ex/pallof-press-1.jpg"
+"img/ex/pallof-press-0.jpg?v=2",
+"img/ex/pallof-press-1.jpg?v=2"
 ]
 },
 "cable-rotation-horizontal-woodchop": {
@@ -543,8 +566,8 @@
 "Repeat on the opposite side, alternating until the set is complete."
 ],
 "img": [
-"img/ex/dead-bug-0.jpg",
-"img/ex/dead-bug-1.jpg"
+"img/ex/dead-bug-0.jpg?v=2",
+"img/ex/dead-bug-1.jpg?v=2"
 ]
 },
 "plank": {
@@ -553,8 +576,8 @@
 "Keep your body straight at all times, and hold this position as long as possible. To increase difficulty, an arm or leg can be raised."
 ],
 "img": [
-"img/ex/plank-0.jpg",
-"img/ex/plank-1.jpg"
+"img/ex/plank-0.jpg?v=2",
+"img/ex/plank-1.jpg?v=2"
 ]
 },
 "seated-cable-side-bend": {
@@ -583,8 +606,8 @@
 "Now, as you inhale, slowly lower your legs back down to the starting position."
 ],
 "img": [
-"img/ex/flat-bench-lying-leg-raise-0.jpg",
-"img/ex/flat-bench-lying-leg-raise-1.jpg"
+"img/ex/flat-bench-lying-leg-raise-0.jpg?v=2",
+"img/ex/flat-bench-lying-leg-raise-1.jpg?v=2"
 ]
 },
 "heel-taps": {
@@ -596,8 +619,8 @@
 "Continue alternating sides in this manner until all prescribed repetitions are done."
 ],
 "img": [
-"img/ex/alternate-heel-touchers-0.jpg",
-"img/ex/alternate-heel-touchers-1.jpg"
+"img/ex/alternate-heel-touchers-0.jpg?v=2",
+"img/ex/alternate-heel-touchers-1.jpg?v=2"
 ]
 },
 "reverse-crunch": {
@@ -609,8 +632,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/reverse-crunch-0.jpg",
-"img/ex/reverse-crunch-1.jpg"
+"img/ex/reverse-crunch-0.jpg?v=2",
+"img/ex/reverse-crunch-1.jpg?v=2"
 ]
 },
 "bicycle-crunch": {
@@ -623,8 +646,8 @@
 "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
 ],
 "img": [
-"img/ex/air-bike-0.jpg",
-"img/ex/air-bike-1.jpg"
+"img/ex/air-bike-0.jpg?v=2",
+"img/ex/air-bike-1.jpg?v=2"
 ]
 },
 "russian-twist-bodyweight": {
@@ -636,8 +659,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/russian-twist-0.jpg",
-"img/ex/russian-twist-1.jpg"
+"img/ex/russian-twist-0.jpg?v=2",
+"img/ex/russian-twist-1.jpg?v=2"
 ]
 },
 "seated-lean-back-hold": {
@@ -700,8 +723,8 @@
 "The handles can be used to monitor your heart rate to help you stay at an appropriate intensity."
 ],
 "img": [
-"img/ex/elliptical-trainer-0.jpg",
-"img/ex/elliptical-trainer-1.jpg"
+"img/ex/elliptical-trainer-0.jpg?v=2",
+"img/ex/elliptical-trainer-1.jpg?v=2"
 ]
 },
 "seated-vr-fitness": {
@@ -731,8 +754,8 @@
 "Hold for a second at the contracted position and repeat the movement for the prescribed amount of repetitions."
 ],
 "img": [
-"img/ex/dumbbell-flyes-0.jpg",
-"img/ex/dumbbell-flyes-1.jpg"
+"img/ex/dumbbell-flyes-0.jpg?v=2",
+"img/ex/dumbbell-flyes-1.jpg?v=2"
 ]
 },
 "romanian-deadlift-barbell": {
@@ -744,8 +767,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/romanian-deadlift-0.jpg",
-"img/ex/romanian-deadlift-1.jpg"
+"img/ex/romanian-deadlift-0.jpg?v=2",
+"img/ex/romanian-deadlift-1.jpg?v=2"
 ]
 },
 "hammer-curl-dumbbell": {
@@ -757,8 +780,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/hammer-curls-0.jpg",
-"img/ex/hammer-curls-1.jpg"
+"img/ex/hammer-curls-0.jpg?v=2",
+"img/ex/hammer-curls-1.jpg?v=2"
 ]
 },
 "push-up": {
@@ -769,8 +792,8 @@
 "After a brief pause at the top contracted position, you can begin to lower yourself downward again for as many repetitions as needed."
 ],
 "img": [
-"img/ex/pushups-0.jpg",
-"img/ex/pushups-1.jpg"
+"img/ex/pushups-0.jpg?v=2",
+"img/ex/pushups-1.jpg?v=2"
 ]
 },
 "goblet-squat": {
@@ -780,8 +803,8 @@
 "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
 ],
 "img": [
-"img/ex/goblet-squat-0.jpg",
-"img/ex/goblet-squat-1.jpg"
+"img/ex/goblet-squat-0.jpg?v=2",
+"img/ex/goblet-squat-1.jpg?v=2"
 ]
 },
 "lunge": {
@@ -792,8 +815,8 @@
 "Step forward with your rear foot, repeating the lunge on the opposite leg."
 ],
 "img": [
-"img/ex/bodyweight-walking-lunge-0.jpg",
-"img/ex/bodyweight-walking-lunge-1.jpg"
+"img/ex/bodyweight-walking-lunge-0.jpg?v=2",
+"img/ex/bodyweight-walking-lunge-1.jpg?v=2"
 ]
 },
 "lunge-dumbbell": {
@@ -804,8 +827,8 @@
 "Repeat the movement for the recommended amount of repetitions and then perform with the left leg."
 ],
 "img": [
-"img/ex/dumbbell-lunges-0.jpg",
-"img/ex/dumbbell-lunges-1.jpg"
+"img/ex/dumbbell-lunges-0.jpg?v=2",
+"img/ex/dumbbell-lunges-1.jpg?v=2"
 ]
 },
 "arnold-press-dumbbell": {
@@ -817,8 +840,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/arnold-dumbbell-press-0.jpg",
-"img/ex/arnold-dumbbell-press-1.jpg"
+"img/ex/arnold-dumbbell-press-0.jpg?v=2",
+"img/ex/arnold-dumbbell-press-1.jpg?v=2"
 ]
 },
 "lying-leg-curl-machine": {
@@ -829,8 +852,8 @@
 "As you inhale, bring the legs back to the initial position. Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/lying-leg-curls-0.jpg",
-"img/ex/lying-leg-curls-1.jpg"
+"img/ex/lying-leg-curls-0.jpg?v=2",
+"img/ex/lying-leg-curls-1.jpg?v=2"
 ]
 },
 "dumbbell-row": {
@@ -844,8 +867,8 @@
 "Switch sides and repeat again with the other arm."
 ],
 "img": [
-"img/ex/one-arm-dumbbell-row-0.jpg",
-"img/ex/one-arm-dumbbell-row-1.jpg"
+"img/ex/one-arm-dumbbell-row-0.jpg?v=2",
+"img/ex/one-arm-dumbbell-row-1.jpg?v=2"
 ]
 },
 "stairmaster": {
@@ -855,8 +878,8 @@
 "Stairmasters offer convenience, cardiovascular benefits, and usually have less impact than running outside. They are typically much harder than other cardio equipment. A 150 lb person will typically burn over 300 calories in 30 minutes, compared to about 175 calories walking."
 ],
 "img": [
-"img/ex/stairmaster-0.jpg",
-"img/ex/stairmaster-1.jpg"
+"img/ex/stairmaster-0.jpg?v=2",
+"img/ex/stairmaster-1.jpg?v=2"
 ]
 },
 "hip-abduction-machine": {
@@ -867,8 +890,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/thigh-abductor-0.jpg",
-"img/ex/thigh-abductor-1.jpg"
+"img/ex/thigh-abductor-0.jpg?v=2",
+"img/ex/thigh-abductor-1.jpg?v=2"
 ]
 },
 "hip-adduction-machine": {
@@ -879,8 +902,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/thigh-adductor-0.jpg",
-"img/ex/thigh-adductor-1.jpg"
+"img/ex/thigh-adductor-0.jpg?v=2",
+"img/ex/thigh-adductor-1.jpg?v=2"
 ]
 },
 "squat-bodyweight": {
@@ -890,8 +913,8 @@
 "Continue down to full depth if you are able,and quickly reverse the motion until you return to the starting position. As you squat, keep your head and chest up and push your knees out."
 ],
 "img": [
-"img/ex/bodyweight-squat-0.jpg",
-"img/ex/bodyweight-squat-1.jpg"
+"img/ex/bodyweight-squat-0.jpg?v=2",
+"img/ex/bodyweight-squat-1.jpg?v=2"
 ]
 },
 "single-leg-glute-bridge": {
@@ -902,15 +925,15 @@
 "Extend as far as possible, pause and then return to the starting position."
 ],
 "img": [
-"img/ex/single-leg-glute-bridge-0.jpg",
-"img/ex/single-leg-glute-bridge-1.jpg"
+"img/ex/single-leg-glute-bridge-0.jpg?v=2",
+"img/ex/single-leg-glute-bridge-1.jpg?v=2"
 ]
 },
 "kettlebell-swing": {
 "ins": [],
 "img": [
-"img/ex/one-arm-kettlebell-swings-0.jpg",
-"img/ex/one-arm-kettlebell-swings-1.jpg"
+"img/ex/one-arm-kettlebell-swings-0.jpg?v=2",
+"img/ex/one-arm-kettlebell-swings-1.jpg?v=2"
 ]
 },
 "deadlift-dumbbell": {
@@ -922,8 +945,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/stiff-legged-dumbbell-deadlift-0.jpg",
-"img/ex/stiff-legged-dumbbell-deadlift-1.jpg"
+"img/ex/stiff-legged-dumbbell-deadlift-0.jpg?v=2",
+"img/ex/stiff-legged-dumbbell-deadlift-1.jpg?v=2"
 ]
 },
 "treadmill-incline-walk": {
@@ -932,8 +955,8 @@
 "Treadmills offer convenience, cardiovascular benefits, and usually have less impact than walking outside. When walking, you should move at a moderate to fast pace, not a leisurely one. Being an activity of lower intensity, walking doesn't burn as many calories as some other activities, but still provides great benefit. A 150 lb person will burn about 175 calories walking 4 miles per hour for 30 minutes, compared to 450 calories running twice as fast. Maintain proper posture as you walk, and only hold onto the handles when necessary, such as when dismounting or checking your heart rate."
 ],
 "img": [
-"img/ex/walking-treadmill-0.jpg",
-"img/ex/walking-treadmill-1.jpg"
+"img/ex/walking-treadmill-0.jpg?v=2",
+"img/ex/walking-treadmill-1.jpg?v=2"
 ]
 },
 "hanging-knee-raise": {
@@ -944,8 +967,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/hanging-leg-raise-0.jpg",
-"img/ex/hanging-leg-raise-1.jpg"
+"img/ex/hanging-leg-raise-0.jpg?v=2",
+"img/ex/hanging-leg-raise-1.jpg?v=2"
 ]
 },
 "leg-press-machine": {
@@ -957,8 +980,8 @@
 "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
 ],
 "img": [
-"img/ex/leg-press-0.jpg",
-"img/ex/leg-press-1.jpg"
+"img/ex/leg-press-0.jpg?v=2",
+"img/ex/leg-press-1.jpg?v=2"
 ]
 },
 "leg-extension-machine": {
@@ -969,8 +992,8 @@
 "Repeat for the recommended amount of times."
 ],
 "img": [
-"img/ex/leg-extensions-0.jpg",
-"img/ex/leg-extensions-1.jpg"
+"img/ex/leg-extensions-0.jpg?v=2",
+"img/ex/leg-extensions-1.jpg?v=2"
 ]
 },
 "triceps-extension-cable": {
@@ -982,8 +1005,8 @@
 "Repeat for the recommended amount of repetitions."
 ],
 "img": [
-"img/ex/cable-rope-overhead-triceps-extension-0.jpg",
-"img/ex/cable-rope-overhead-triceps-extension-1.jpg"
+"img/ex/cable-rope-overhead-triceps-extension-0.jpg?v=2",
+"img/ex/cable-rope-overhead-triceps-extension-1.jpg?v=2"
 ]
 },
 "kettlebell-goblet-squat": {
@@ -993,8 +1016,8 @@
 "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
 ],
 "img": [
-"img/ex/goblet-squat-0.jpg",
-"img/ex/goblet-squat-1.jpg"
+"img/ex/goblet-squat-0.jpg?v=2",
+"img/ex/goblet-squat-1.jpg?v=2"
 ]
 }
 }

@@ -2,7 +2,7 @@
 // FORGE · Shared UI helpers
 // =========================================================
 
-import * as db from './db.js?v=28';
+import * as db from './db.js?v=31';
 
 // -------- DOM builder --------
 

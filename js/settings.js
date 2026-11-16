@@ -1,7 +1,7 @@
 // FORGE settings editor
-import * as db from './db.js?v=28';
-import { el, section, formField, formSelect, toast, confirmModal } from './ui.js?v=28';
-import { DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS, STEP_THRESHOLD, setPaused, isPaused, localIso } from './trail.js?v=28';
+import * as db from './db.js?v=31';
+import { el, section, formField, formSelect, toast, confirmModal } from './ui.js?v=31';
+import { DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS, STEP_THRESHOLD, setPaused, isPaused, localIso } from './trail.js?v=31';
 
 export async function renderSettings(container) {
   const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal, theme] = await Promise.all([
@@ -76,7 +76,7 @@ export async function renderSettings(container) {
   pauseBtn.addEventListener('click', () => {
     confirmModal(pausedNow ? 'RESUME TRAIL?' : 'PAUSE TRAIL?',
       pausedNow ? 'Progress counting restarts today.' : 'Nothing counts and nothing is lost until you resume. Workouts logged while paused earn no trail credit.',
-      async () => { await setPaused(!pausedNow); toast(pausedNow ? 'TRAIL RESUMED' : 'TRAIL PAUSED', 'ok'); const m = await import('./app.js?v=28'); m.refresh && m.refresh(); });
+      async () => { await setPaused(!pausedNow); toast(pausedNow ? 'TRAIL RESUMED' : 'TRAIL PAUSED', 'ok'); const m = await import('./app.js?v=31'); m.refresh && m.refresh(); });
   });
   container.appendChild(section('TRAIL · PAUSE', pauseBtn));
 

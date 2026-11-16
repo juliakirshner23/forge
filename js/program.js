@@ -1,6 +1,6 @@
 // FORGE v1.0.0 · Program: phases, blocks, scheduling, exercise guides
-import * as db from './db.js?v=28';
-import { EXDEFS, OTHER_GUIDES, PHASE1_BLOCKS, PHASE2_BLOCKS } from './program-data.js?v=28';
+import * as db from './db.js?v=31';
+import { EXDEFS, OTHER_GUIDES, PHASE1_BLOCKS, PHASE2_BLOCKS } from './program-data.js?v=31';
 
 // ---------- Categories (one field, used everywhere) ----------
 export const CATS = ['push', 'pull', 'legs', 'core', 'cardio', 'rehab'];
@@ -156,7 +156,7 @@ export async function targetsForExercise(exerciseId) {
 let _guides = null;
 export async function getGuides() {
   if (_guides) return _guides;
-  try { _guides = await (await fetch('data/guides.json?v=28')).json(); }
+  try { _guides = await (await fetch('data/guides.json?v=31')).json(); }
   catch (err) { console.error('Guides load failed', err); _guides = {}; }
   return _guides;
 }
@@ -354,4 +354,40 @@ export async function migrateV103Routines() {
   }
   await db.put('meta', { key: 'routines_v103', value: { at: nowIso, made } });
   return made;
+}
+
+// ---------- v1.0.5 · Alternatives use different equipment ----------
+// Sets each program exercise's alternatives to exactly what the plan lists
+// (replacing older same-machine suggestions) and updates saved routines.
+export async function migrateV105Alternatives() {
+  if (await db.get('meta', 'alts_v105')) return false;
+  await ensureProgramExercises();
+  const idMap = (await db.getSetting('programExerciseIds')) || {};
+  const altsById = new Map();
+  for (const blocks of Object.values(BLOCKS)) for (const list of Object.values(blocks)) for (const e of list) {
+    const id = idMap[e.key];
+    if (!id) continue;
+    const set = altsById.get(id) || new Set();
+    for (const k of e.alts || []) if (idMap[k]) set.add(idMap[k]);
+    altsById.set(id, set);
+  }
+  const exercises = await db.getAll('exercises');
+  const changed = [];
+  for (const ex of exercises) {
+    if (!altsById.has(ex.id)) continue;
+    ex.substituteIds = [...altsById.get(ex.id)];
+    ex.updatedAt = new Date().toISOString();
+    changed.push(ex);
+  }
+  if (changed.length) await db.putMany('exercises', changed);
+  const routines = await db.getAll('routines');
+  for (const r of routines) {
+    let touched = false;
+    for (const e of r.exercises || []) {
+      if (altsById.has(e.exerciseId)) { e.substituteIds = [...altsById.get(e.exerciseId)]; touched = true; }
+    }
+    if (touched) { r.updatedAt = new Date().toISOString(); await db.put('routines', r); }
+  }
+  await db.put('meta', { key: 'alts_v105', value: { at: new Date().toISOString() } });
+  return true;
 }

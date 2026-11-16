@@ -1,11 +1,11 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=28';
+import * as db from './db.js?v=31';
 import {
   el, section, notFound, formField, formTextarea, formSelect, openPicker,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, askModal, getActiveSession, currentDayKey, DAY_FULL,
   localDay, todayIso,
-} from './ui.js?v=28';
-import { est1RM, exerciseSuggestion } from './progression.js?v=28';
+} from './ui.js?v=31';
+import { est1RM, exerciseSuggestion } from './progression.js?v=31';
 
 // ---------- START SESSION (called from routine detail) ----------
 export async function startSession(routine, opts = {}) {
@@ -167,7 +167,7 @@ async function openSessionMenu(session) {
 async function addExerciseMidSession(session) {
   const settings = await db.getSetting('constraints');
   const activeFlags = settings?.active ? (settings.flags || []) : [];
-  const { openExercisePicker } = await import('./exercise-picker.js?v=28');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=31');
   openExercisePicker('ADD EXERCISE TO WORKOUT', async (ex) => {
     const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
     if (flagged) {
@@ -197,7 +197,7 @@ async function addExerciseMidSession(session) {
       const keep = await askModal('SAVE TO ROUTINE?',
         `Also add ${ex.name} to "${routine.name}" permanently?`, 'SAVE TO ROUTINE', 'THIS WORKOUT ONLY');
       if (keep) {
-        const { routineEntryFor } = await import('./routine-editor.js?v=28');
+        const { routineEntryFor } = await import('./routine-editor.js?v=31');
         routine.exercises = [...(routine.exercises || []), routineEntryFor(ex, (routine.exercises || []).length)];
         routine.updatedAt = new Date().toISOString();
         await db.put('routines', routine);
@@ -263,7 +263,7 @@ function renderExerciseCard(session, current, idx) {
   }
 
   wrap.appendChild(el('div', { class: 'active-name-row' }, [
-    el('a', { class: 'active-name', href: `#/exercise/${current.exerciseId}`, text: current.exerciseName || '(unknown)' }),
+    el('a', { class: 'active-name', href: `#/exercise/${current.exerciseId}/session/${session.id}/${idx}`, text: current.exerciseName || '(unknown)' }),
     el('button', { class: 'btn-mini', text: '⇄ SWAP', onclick: () => openSwap(session, current, idx) }),
   ]));
   if (current.targetNote) wrap.appendChild(el('div', { class: 'active-target', text: `TARGET · ${current.targetNote.toUpperCase()}` }));
@@ -711,7 +711,7 @@ function openFinishModal(session) {
     await db.put('sessions', session);
     await maybeAdvancePushupLadder(session);
     let credit = null;
-    try { const { recordSession } = await import('./trail.js?v=28'); credit = await recordSession(session); }
+    try { const { recordSession } = await import('./trail.js?v=31'); credit = await recordSession(session); }
     catch (err) { console.error('Trail credit failed', err); }
     document.getElementById('inspector-scrim').hidden = true;
     const creditText = credit && (credit.distKm > 0 || credit.climbM > 0)
@@ -728,7 +728,7 @@ function openFinishModal(session) {
   body.appendChild(backBtn);
   document.getElementById('inspector-scrim').hidden = false;
 }
-async function refresh() { const m = await import('./app.js?v=28'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=31'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -978,14 +978,8 @@ async function openSwap(session, current, idx) {
     return st.actualWeightLb != null ? `LAST: ${st.actualWeightLb} LB × ${st.actualReps ?? '—'}` : st.actualReps != null ? `LAST: ${st.actualReps} REPS` : 'DONE BEFORE';
   };
   async function swapTo(ex) {
-    if (!current.swappedFrom) current.swappedFrom = { id: current.exerciseId, name: current.exerciseName };
-    if (current.swappedFrom.id === ex.id) delete current.swappedFrom;
-    current.exerciseId = ex.id;
-    current.exerciseName = ex.name;
-    session.exercises[idx] = current;
-    await db.put('sessions', session);
+    await swapSessionExercise(session.id, idx, ex.id);
     document.getElementById('inspector-scrim').hidden = true;
-    toast(`SWAPPED · ${ex.name}`, 'ok');
     refresh();
   }
   document.getElementById('inspector-title').textContent = `SWAP ${(current.exerciseName || '').toUpperCase()}`;
@@ -1006,9 +1000,28 @@ async function openSwap(session, current, idx) {
   }
   stack.appendChild(el('button', { class: 'btn btn-outline', onclick: async () => {
     document.getElementById('inspector-scrim').hidden = true;
-    const { openExercisePicker } = await import('./exercise-picker.js?v=28');
+    const { openExercisePicker } = await import('./exercise-picker.js?v=31');
     openExercisePicker('SWAP FOR ANOTHER EXERCISE', (ex) => swapTo(ex));
   } }, [ el('span', { class: 'btn-title', text: 'PICK ANOTHER EXERCISE' }) ]));
   body.appendChild(stack);
   document.getElementById('inspector-scrim').hidden = false;
+}
+
+
+// v1.0.5 · Swap the exercise at position idx in a session (this workout only).
+// Sets already logged stay; you log the rest against the new exercise.
+export async function swapSessionExercise(sessionId, idx, newExerciseId) {
+  const session = await db.get('sessions', sessionId);
+  const ex = await db.get('exercises', newExerciseId);
+  if (!session || !ex || !session.exercises?.[idx]) return false;
+  const current = session.exercises[idx];
+  if (current.exerciseId === ex.id) return true;
+  if (!current.swappedFrom) current.swappedFrom = { id: current.exerciseId, name: current.exerciseName };
+  if (current.swappedFrom.id === ex.id) delete current.swappedFrom;
+  current.exerciseId = ex.id;
+  current.exerciseName = ex.name;
+  session.currentExerciseIdx = idx;
+  await db.put('sessions', session);
+  toast(`SWAPPED · ${ex.name}`, 'ok');
+  return true;
 }

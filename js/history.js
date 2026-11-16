@@ -1,7 +1,7 @@
 // FORGE LOG tab: saved workouts only (v0.8.0). Heatmap + filter + list.
 // Workouts are started from PLAN, never from here.
-import * as db from './db.js?v=28';
-import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=28';
+import * as db from './db.js?v=31';
+import { el, section, formatDate, DAY_LABELS, DAY_ORDER } from './ui.js?v=31';
 
 // Local YYYY-MM-DD (not UTC) so evening workouts land on the right day.
 function localDay(dateOrIso) {
@@ -79,7 +79,7 @@ function sessionRow(s) {
   const del = el('button', { class: 'log-row-del', text: '×', 'aria-label': 'Delete workout' });
   del.addEventListener('click', async (e) => {
     e.preventDefault(); e.stopPropagation();
-    const { confirmDeleteSession } = await import('./workout.js?v=28');
+    const { confirmDeleteSession } = await import('./workout.js?v=31');
     confirmDeleteSession(s, null);
   });
   const setsCount = (s.exercises || []).reduce((n, ex) => n + (ex.sets || []).filter((st) => st.done).length, 0);
