@@ -1,32 +1,33 @@
 // FORGE main entry: boot + hash router
-import * as db from './db.js?v=24';
-import { importBundledHevyBackup } from './import.js?v=24';
-import { toast } from './ui.js?v=24';
-import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderStats, renderMe, renderTrail } from './screens.js?v=24';
-import { renderSession } from './workout.js?v=24';
-import { renderHistory } from './history.js?v=24';
-import { renderBody } from './body.js?v=24';
-import { renderGoals } from './goals.js?v=24';
-import { renderSettings } from './settings.js?v=24';
-import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=24';
+import * as db from './db.js?v=27';
+import { importBundledHevyBackup } from './import.js?v=27';
+import { toast, startSentenceCase } from './ui.js?v=27';
+import { renderHome, renderPlan, renderRoutine, renderLibrary, renderExercise, renderMe, renderTrail, renderBlock, renderProgress } from './screens.js?v=27';
+import { migrateV100, migrateV101FreshStart } from './program.js?v=27';
+import { renderSession } from './workout.js?v=27';
+import { renderBody } from './body.js?v=27';
+import { renderGoals } from './goals.js?v=27';
+import { renderFood, renderFoodDay, renderFoodNew, renderFoodEdit } from './food.js?v=27';
 
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '1.0.2';
 
 const ROUTES = {
   '/home':     renderHome,
   '/trail':    renderTrail,
   '/plan':     renderPlan,
+  '/block':    renderBlock,
   '/routine':  renderRoutine,
   '/library':  renderLibrary,
   '/exercise': renderExercise,
-  '/log':      renderHistory,
   '/session':  renderSession,
-  '/history':  renderHistory,
-  '/body':     renderBody,
-  '/goals':    renderGoals,
-  '/goal':     renderGoals,
-  '/stats':    renderStats,
-  '/settings': renderSettings,
+  '/progress': renderProgress,
+  '/log':      (c) => renderProgress(c, ['history']),
+  '/history':  (c) => renderProgress(c, ['history']),
+  '/stats':    (c) => renderProgress(c, ['charts']),
+  '/body':     (c, p) => (p && p.length ? renderBody(c, p) : renderProgress(c, ['body'])),
+  '/goals':    (c) => renderProgress(c, ['goals']),
+  '/goal':     (c, p) => (p && p.length ? renderGoals(c, p) : renderProgress(c, ['goals'])),
+  '/settings': renderMe,
   '/me':       renderMe,
   '/food':     renderFood,
   '/food-day': renderFoodDay,
@@ -72,7 +73,7 @@ async function handleRoute() {
 // v0.9.0 · Trail points in the header, on every screen.
 async function updatePointsPill() {
   try {
-    const { getStatus } = await import('./trail.js?v=24');
+    const { getStatus } = await import('./trail.js?v=27');
     const t = await getStatus();
     const pill = document.getElementById('topbar-points');
     if (pill) { pill.textContent = `${t.points} PTS`; pill.hidden = false; }
@@ -83,12 +84,12 @@ function updateActiveTab(routeKey) {
   // Map sub-routes to their parent tab for highlighting
   const tabMap = {
     '/home': '/home', '/trail': '/home',
-    '/plan': '/plan', '/routine': '/plan', '/library': '/plan', '/exercise': '/plan',
-    '/log': '/log', '/session': '/log', '/history': '/log',
+    '/plan': '/plan', '/block': '/plan', '/routine': '/plan', '/library': '/plan', '/exercise': '/plan',
+    '/session': '/plan',
     '/food': '/food', '/food-day': '/food', '/food-new': '/food', '/food-edit': '/food',
-    '/stats': '/stats', '/body': '/stats',
-    // /me and its sub-routes have no bottom tab; ME lives in top-right of header.
-    '/me': null, '/goals': null, '/goal': null, '/settings': null,
+    '/progress': '/progress', '/log': '/progress', '/history': '/progress', '/stats': '/progress',
+    '/body': '/progress', '/goals': '/progress', '/goal': '/progress',
+    '/me': null, '/settings': null,
   };
   const tabRoute = tabMap[routeKey] || routeKey;
   document.querySelectorAll('.tab').forEach((tab) => {
@@ -101,13 +102,17 @@ export function refresh() { handleRoute(); }
 async function boot() {
   try {
     console.log('FORGE boot · version', APP_VERSION);
-    document.getElementById('topbar-meta').textContent = 'v' + APP_VERSION;
+    
     await db.openDb();
+    startSentenceCase();
     await ensureSeedData();
     await migrateV050();
     await migrateV072();
     await migrateV074();
     await migrateV090();
+    const mig = await migrateV100();
+    const fresh = await migrateV101FreshStart();
+    if (mig || fresh) toast('FORGE 1.0 · Fresh start · Trail begins Nov 16', 'ok', 4000);
     await applyTheme();
     await checkBackupReminder();
     if (!window.location.hash) window.location.hash = '#/home';
@@ -124,7 +129,7 @@ async function boot() {
 async function migrateV072() {
   const done = await db.get('meta', 'migrated_v072');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=24');
+  const { inferFocus } = await import('./import.js?v=27');
   const exs = await db.getAll('exercises');
   for (const e of exs) {
     if (e.focus == null) {
@@ -141,7 +146,7 @@ async function migrateV072() {
 async function migrateV074() {
   const done = await db.get('meta', 'migrated_v074');
   if (done) return;
-  const { inferFocus } = await import('./import.js?v=24');
+  const { inferFocus } = await import('./import.js?v=27');
   const exs = await db.getAll('exercises');
   let changed = 0;
   for (const e of exs) {
@@ -163,7 +168,7 @@ async function migrateV074() {
 async function migrateV090() {
   const done = await db.get('meta', 'migrated_v090');
   if (done) return;
-  const { localIso, DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS } = await import('./trail.js?v=24');
+  const { localIso, DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS } = await import('./trail.js?v=27');
   await db.setSetting('theme', 'light');
   if (!(await db.getSetting('trailStartDate'))) await db.setSetting('trailStartDate', localIso(new Date()));
   if (!(await db.getSetting('hrCalibration'))) await db.setSetting('hrCalibration', DEFAULT_CALIBRATION);

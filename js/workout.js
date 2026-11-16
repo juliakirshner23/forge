@@ -1,16 +1,18 @@
 // FORGE workout execution: log tab, start/active session, session summary
-import * as db from './db.js?v=24';
+import * as db from './db.js?v=27';
 import {
   el, section, notFound, formField, formTextarea, formSelect, openPicker,
   catBadge, formatMinSec, formatDate, uid, toast, confirmModal, askModal, getActiveSession, currentDayKey, DAY_FULL,
-} from './ui.js?v=24';
-import { est1RM, exerciseSuggestion } from './progression.js?v=24';
+  localDay, todayIso,
+} from './ui.js?v=27';
+import { est1RM, exerciseSuggestion } from './progression.js?v=27';
 
 // ---------- START SESSION (called from routine detail) ----------
-export async function startSession(routine) {
+export async function startSession(routine, opts = {}) {
   const now = new Date().toISOString();
   const session = {
     id: uid('ses'),
+    logDate: opts.logDate && opts.logDate !== todayIso() ? opts.logDate : null,
     routineId: routine.id,
     routineName: routine.name,
     routineDay: routine.scheduledDay || null,
@@ -25,6 +27,8 @@ export async function startSession(routine) {
       restBetweenSets: ex.restBetweenSets || null,
       supersetGroupId: ex.supersetGroupId || null,
       pickOneGroupId: ex.pickOneGroupId || null,
+      substituteIds: ex.substituteIds || [],
+      targetNote: ex.notes || '',
       notes: '',
       skipped: false,
       sets: (ex.sets || []).map((s, si) => ({
@@ -98,6 +102,8 @@ async function renderActiveSession(container, session) {
       el('button', { class: 'session-menu-btn', text: '☰', onclick: () => openSessionMenu(session) }),
     ]),
     el('h1', { text: session.routineName || '(session)' }),
+    el('button', { class: 'date-chip-btn' + (session.logDate ? ' date-chip-btn-past' : ''), onclick: () => openSessionDate(session) },
+      [ el('span', { text: session.logDate ? `LOGGING FOR ${formatDate(session.logDate)}  ▾` : `TODAY  ·  ${formatDate(todayIso())}  ▾` }) ]),
   ]));
 
   // Exercise nav strip (jumps)
@@ -161,7 +167,7 @@ async function openSessionMenu(session) {
 async function addExerciseMidSession(session) {
   const settings = await db.getSetting('constraints');
   const activeFlags = settings?.active ? (settings.flags || []) : [];
-  const { openExercisePicker } = await import('./exercise-picker.js?v=24');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=27');
   openExercisePicker('ADD EXERCISE TO WORKOUT', async (ex) => {
     const flagged = (ex.constraintFlags || []).some((f) => activeFlags.includes(f));
     if (flagged) {
@@ -191,7 +197,7 @@ async function addExerciseMidSession(session) {
       const keep = await askModal('SAVE TO ROUTINE?',
         `Also add ${ex.name} to "${routine.name}" permanently?`, 'SAVE TO ROUTINE', 'THIS WORKOUT ONLY');
       if (keep) {
-        const { routineEntryFor } = await import('./routine-editor.js?v=24');
+        const { routineEntryFor } = await import('./routine-editor.js?v=27');
         routine.exercises = [...(routine.exercises || []), routineEntryFor(ex, (routine.exercises || []).length)];
         routine.updatedAt = new Date().toISOString();
         await db.put('routines', routine);
@@ -256,7 +262,12 @@ function renderExerciseCard(session, current, idx) {
     }
   }
 
-  wrap.appendChild(el('div', { class: 'active-name', text: current.exerciseName || '(unknown)' }));
+  wrap.appendChild(el('div', { class: 'active-name-row' }, [
+    el('a', { class: 'active-name', href: `#/exercise/${current.exerciseId}`, text: current.exerciseName || '(unknown)' }),
+    el('button', { class: 'btn-mini', text: '⇄ SWAP', onclick: () => openSwap(session, current, idx) }),
+  ]));
+  if (current.targetNote) wrap.appendChild(el('div', { class: 'active-target', text: `TARGET · ${current.targetNote.toUpperCase()}` }));
+  if (current.swappedFrom) wrap.appendChild(el('div', { class: 'active-target', text: `SWAPPED IN FOR ${current.swappedFrom.name.toUpperCase()} · THIS WORKOUT ONLY` }));
   const tip = el('div', {});
   wrap.appendChild(tip);
   exerciseSuggestion(current.exerciseId).then((sg) => { if (sg) tip.replaceWith(suggestionNote(sg)); });
@@ -663,6 +674,10 @@ function openFinishModal(session) {
   const form = el('div', { class: 'form-stack' }, [
     formTextarea('NOTES (OPTIONAL)', 'notes', session.notes || '', 'How did it feel?', 3),
   ]);
+  if (session.logDate) {
+    form.prepend(formField('HOW LONG WAS THE WORKOUT? (MIN)', 'number', 'durationMin', session.loggedDurationMin ?? '', 'USED FOR CALORIES', { step: '1' }));
+    form.prepend(el('div', { class: 'form-hint', text: `SAVES TO ${formatDate(session.logDate)}` }));
+  }
   body.appendChild(form);
   // v0.9.0 · Strength heart rate → trail credit (1/4 of cardio). Shown only when
   // non-cardio sets were logged; checked against the exercise library on save.
@@ -681,12 +696,22 @@ function openFinishModal(session) {
     const shr = form.querySelector('[name="strengthAvgHr"]')?.value;
     if (shr !== undefined) session.strengthAvgHr = shr ? Number(shr) : null;
     session.prs = await computePRs(session);
-    session.completedAt = new Date().toISOString();
+    if (session.logDate) {
+      const mins = Number(form.querySelector('[name="durationMin"]')?.value) || 0;
+      const [y, m, d] = session.logDate.split('-').map(Number);
+      const now = new Date();
+      const end = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+      session.loggedDurationMin = mins || null;
+      session.completedAt = end.toISOString();
+      session.startedAt = new Date(end.getTime() - mins * 60000).toISOString();
+    } else {
+      session.completedAt = new Date().toISOString();
+    }
     session.isActive = false;
     await db.put('sessions', session);
     await maybeAdvancePushupLadder(session);
     let credit = null;
-    try { const { recordSession } = await import('./trail.js?v=24'); credit = await recordSession(session); }
+    try { const { recordSession } = await import('./trail.js?v=27'); credit = await recordSession(session); }
     catch (err) { console.error('Trail credit failed', err); }
     document.getElementById('inspector-scrim').hidden = true;
     const creditText = credit && (credit.distKm > 0 || credit.climbM > 0)
@@ -703,7 +728,7 @@ function openFinishModal(session) {
   body.appendChild(backBtn);
   document.getElementById('inspector-scrim').hidden = false;
 }
-async function refresh() { const m = await import('./app.js?v=24'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=27'); m.refresh && m.refresh(); }
 
 // ---------- SESSION SUMMARY ----------
 async function renderSessionSummary(container, session) {
@@ -716,7 +741,7 @@ async function renderSessionSummary(container, session) {
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/log', class: 'crumb', text: '‹ LOG' }),
+      el('a', { href: '#/log', class: 'crumb', text: '‹ HISTORY' }),
       el('span', { text: '  ·  SAVED WORKOUT' }),
     ]),
     el('h1', { text: session.routineName || '(session)' }),
@@ -844,7 +869,7 @@ function openEditPastSession(session) {
   const body = document.getElementById('inspector-body');
   body.innerHTML = '';
   const form = el('div', { class: 'form-stack' });
-  const dateVal = (session.completedAt || '').slice(0, 10);
+  const dateVal = session.completedAt ? localDay(session.completedAt) : '';
   form.appendChild(formField('DATE (YYYY-MM-DD)', 'date', 'date', dateVal, ''));
   form.appendChild(formTextarea('NOTES', 'notes', session.notes || '', ''));
 
@@ -853,9 +878,13 @@ function openEditPastSession(session) {
   ]);
   saveBtn.addEventListener('click', async () => {
     const d = form.querySelector('[name="date"]').value;
-    if (d) {
-      const prevTime = (session.completedAt || '').slice(10) || 'T12:00:00.000Z';
-      session.completedAt = d + prevTime;
+    if (d && session.completedAt && d !== localDay(session.completedAt)) {
+      const old = new Date(session.completedAt);
+      const durMs = session.startedAt ? old - new Date(session.startedAt) : 0;
+      const [y, m, dd] = d.split('-').map(Number);
+      const end = new Date(y, m - 1, dd, old.getHours(), old.getMinutes(), old.getSeconds());
+      session.completedAt = end.toISOString();
+      if (session.startedAt) session.startedAt = new Date(end.getTime() - durMs).toISOString();
     }
     session.notes = form.querySelector('[name="notes"]').value.trim();
     const shr = form.querySelector('[name="strengthAvgHr"]')?.value;
@@ -899,4 +928,87 @@ async function maybeAdvancePushupLadder(justSavedSession) {
       return;
     }
   }
+}
+
+
+// v1.0.0 · Change which day this workout is logged to (backdating).
+function openSessionDate(session) {
+  document.getElementById('inspector-title').textContent = 'WORKOUT DATE';
+  const body = document.getElementById('inspector-body');
+  body.innerHTML = '';
+  const input = el('input', { class: 'form-input', type: 'date', value: session.logDate || todayIso(), max: todayIso() });
+  const save = el('button', { class: 'btn btn-primary', style: 'margin-top: 12px;' }, [ el('span', { class: 'btn-title', text: 'SAVE DATE' }) ]);
+  save.addEventListener('click', async () => {
+    if (!input.value) { toast('PICK A DATE', 'error'); return; }
+    session.logDate = input.value === todayIso() ? null : input.value;
+    await db.put('sessions', session);
+    document.getElementById('inspector-scrim').hidden = true;
+    toast(session.logDate ? `LOGGING FOR ${formatDate(session.logDate)}` : 'LOGGING FOR TODAY', 'ok');
+    refresh();
+  });
+  body.appendChild(el('div', { class: 'form-stack' }, [
+    el('div', { class: 'form-hint', text: 'FORGOT TO LOG? PICK THE DAY YOU DID IT. YOU WILL ENTER HOW LONG IT TOOK WHEN YOU SAVE.' }),
+    el('label', { class: 'form-field' }, [ el('span', { class: 'form-label', text: 'DATE' }), input ]),
+    save,
+  ]));
+  document.getElementById('inspector-scrim').hidden = false;
+}
+
+// v1.0.0 · Machine taken? Swap this exercise for an alternative, this workout only.
+async function openSwap(session, current, idx) {
+  const exercises = await db.getAll('exercises');
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const lib = exById.get(current.swappedFrom?.id || current.exerciseId);
+  const altIds = [...new Set([...(current.substituteIds || []), ...(lib?.substituteIds || [])])];
+  const alts = altIds.map((id) => exById.get(id)).filter((e) => e && e.id !== current.exerciseId);
+  if (current.swappedFrom && exById.get(current.swappedFrom.id)) alts.unshift(exById.get(current.swappedFrom.id));
+  const sessions = await db.getAll('sessions');
+  const lastDone = (id) => {
+    let best = null;
+    for (const s of sessions) {
+      if (s.isActive || !s.completedAt) continue;
+      for (const ex of s.exercises || []) {
+        if (ex.exerciseId !== id) continue;
+        const st = (ex.sets || []).filter((x) => x.done).pop();
+        if (st && (!best || s.completedAt > best.at)) best = { at: s.completedAt, st };
+      }
+    }
+    if (!best) return 'NEVER DONE';
+    const st = best.st;
+    return st.actualWeightLb != null ? `LAST: ${st.actualWeightLb} LB × ${st.actualReps ?? '—'}` : st.actualReps != null ? `LAST: ${st.actualReps} REPS` : 'DONE BEFORE';
+  };
+  async function swapTo(ex) {
+    if (!current.swappedFrom) current.swappedFrom = { id: current.exerciseId, name: current.exerciseName };
+    if (current.swappedFrom.id === ex.id) delete current.swappedFrom;
+    current.exerciseId = ex.id;
+    current.exerciseName = ex.name;
+    session.exercises[idx] = current;
+    await db.put('sessions', session);
+    document.getElementById('inspector-scrim').hidden = true;
+    toast(`SWAPPED · ${ex.name}`, 'ok');
+    refresh();
+  }
+  document.getElementById('inspector-title').textContent = `SWAP ${(current.exerciseName || '').toUpperCase()}`;
+  const body = document.getElementById('inspector-body');
+  body.innerHTML = '';
+  const stack = el('div', { class: 'action-stack' }, [
+    el('div', { class: 'form-hint', text: 'FOR THIS WORKOUT ONLY. YOUR PLAN STAYS THE SAME.' }),
+  ]);
+  if (alts.length === 0) stack.appendChild(el('div', { class: 'empty-note', text: 'NO ALTERNATIVES SET FOR THIS EXERCISE' }));
+  for (const a of alts) {
+    stack.appendChild(el('button', { class: 'nav-row', onclick: () => swapTo(a) }, [
+      el('div', { class: 'nav-row-main' }, [
+        el('div', { class: 'nav-row-title', text: a.name + (current.swappedFrom && a.id === current.swappedFrom.id ? ' (ORIGINAL)' : '') }),
+        el('div', { class: 'nav-row-sub', text: lastDone(a.id) }),
+      ]),
+      el('div', { class: 'nav-row-arrow', text: 'SWAP' }),
+    ]));
+  }
+  stack.appendChild(el('button', { class: 'btn btn-outline', onclick: async () => {
+    document.getElementById('inspector-scrim').hidden = true;
+    const { openExercisePicker } = await import('./exercise-picker.js?v=27');
+    openExercisePicker('SWAP FOR ANOTHER EXERCISE', (ex) => swapTo(ex));
+  } }, [ el('span', { class: 'btn-title', text: 'PICK ANOTHER EXERCISE' }) ]));
+  body.appendChild(stack);
+  document.getElementById('inspector-scrim').hidden = false;
 }

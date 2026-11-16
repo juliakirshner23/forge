@@ -2,7 +2,7 @@
 // FORGE · Shared UI helpers
 // =========================================================
 
-import * as db from './db.js?v=24';
+import * as db from './db.js?v=27';
 
 // -------- DOM builder --------
 
@@ -78,40 +78,29 @@ export function formTextarea(label, name, value, placeholder = '', rows = 4) {
 
 // -------- Badges + tags --------
 
-// Muscle-group focus badge. Prefers exercise.focus (v0.7.2+); falls back to
-// category for legacy records the migration hasn't touched yet.
-const FOCUS_LABELS = {
-  legs:     'LEG',
-  core:     'COR',
-  push:     'PSH',
-  pull:     'PUL',
-  cardio:   'CAR',
-  rehab:    'REH',
-  mobility: 'MOB',
-  other:    'OTH',
-};
-const CATEGORY_TO_FOCUS_FALLBACK = {
-  strength: 'other',
-  cardio:   'cardio',
-  core:     'core',
-  mobility: 'mobility',
-  rehab:    'rehab',
-};
-
+// Category badge (v1.0.0: one category field: push/pull/legs/core/cardio/rehab).
+const CAT_SHORT = { push: 'PUSH', pull: 'PULL', legs: 'LEGS', core: 'CORE', cardio: 'CARDIO', rehab: 'REHAB' };
+export function catOf(exOrCategory) {
+  if (typeof exOrCategory === 'string') return CAT_SHORT[exOrCategory] ? exOrCategory : 'other';
+  const c = exOrCategory?.category;
+  if (CAT_SHORT[c]) return c;
+  if (CAT_SHORT[exOrCategory?.focus]) return exOrCategory.focus;
+  return 'other';
+}
 export function catBadge(exOrCategory) {
-  // Accept either a full exercise object or a legacy category string.
-  let focus;
-  if (typeof exOrCategory === 'string') focus = CATEGORY_TO_FOCUS_FALLBACK[exOrCategory] || 'other';
-  else focus = exOrCategory?.focus || CATEGORY_TO_FOCUS_FALLBACK[exOrCategory?.category] || 'other';
-  return el('span', { class: `cat cat-${focus}`, text: FOCUS_LABELS[focus] || '?' });
+  const c = catOf(exOrCategory);
+  return el('span', { class: `cat cat-${c}`, text: CAT_SHORT[c] || 'OTHER' });
 }
 
 export function focusTagEl(tag) {
-  const tagClassMap = {
-    push: 'tag-push', pull: 'tag-pull', legs: 'tag-legs', upper: 'tag-upper',
-    core: 'tag-core', rehab: 'tag-rehab', cardio: 'tag-cardio', recovery: 'tag-recovery',
-  };
-  return el('span', { class: `tag ${tagClassMap[tag] || 'tag-neutral'}`, text: tag.toUpperCase() });
+  return el('span', { class: `tag tag-${CAT_SHORT[tag] ? tag : 'neutral'}`, text: tag.toUpperCase() });
+}
+
+// Category tags for a routine, derived from its exercises (in a fixed order).
+export function routineTags(routine, exById) {
+  const order = ['push', 'pull', 'legs', 'core', 'cardio', 'rehab'];
+  const set = new Set((routine.exercises || []).map((e) => catOf(exById.get(e.exerciseId) || {})));
+  return order.filter((c) => set.has(c));
 }
 
 // -------- Time helpers --------
@@ -119,7 +108,7 @@ export function focusTagEl(tag) {
 export const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 export const DAY_LABELS = { mon: 'MON', tue: 'TUE', wed: 'WED', thu: 'THU', fri: 'FRI', sat: 'SAT', sun: 'SUN' };
 export const DAY_FULL   = { mon: 'MONDAY', tue: 'TUESDAY', wed: 'WEDNESDAY', thu: 'THURSDAY', fri: 'FRIDAY', sat: 'SATURDAY', sun: 'SUNDAY' };
-export const CATEGORIES = ['strength', 'cardio', 'core', 'mobility', 'rehab'];
+export const CATEGORIES = ['push', 'pull', 'legs', 'core', 'cardio', 'rehab'];
 
 export function currentDayKey() {
   const d = new Date().getDay();
@@ -133,6 +122,12 @@ export function todayIso() {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+// Local calendar day (phone time zone) for a timestamp or Date.
+export function localDay(ts) {
+  const d = ts instanceof Date ? ts : new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function daysUntil(iso) {
@@ -294,4 +289,76 @@ export function progressBar(pct, opts = {}) {
 export async function getActiveSession() {
   const sessions = await db.getAll('sessions');
   return sessions.find((s) => s.isActive === true) || null;
+}
+
+// ---------- v1.0.1 · Sentence case display ----------
+// Screens are written in ALL CAPS; this shows them in sentence case.
+// Only text that is entirely uppercase is changed, so exercise names,
+// food names, and anything you type in mixed case are left alone.
+const KEEP_UPPER = new Set(['pt', 'pr', 'vr', 'iyt', 'hr', 'rpe', 'json', 'met', 'ok', 'id', 'diy', 'usa', 'ii', 'iii', 'iv', 'kg', 'cm']);
+const LOWER_UNITS = new Set(['lb', 'lbs', 'mi', 'km', 'in', 'ft', 'm', 'kcal', 'min', 'sec', 'bpm', 'mph', 'kg', 'cm']);
+const CAP_WORDS = new Set(['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'sept', 'oct', 'nov', 'dec',
+  'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'january', 'february', 'march', 'april', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+  'hevy', 'icloud', 'drive', 'stairmaster', 'llactapata', 'sayacmarca', 'phuyupatamarca', 'kilimanjaro', 'forge']);
+const PHRASES = [
+  [/\binca trail\b/gi, 'Inca Trail'], [/\bmachu picchu\b/gi, 'Machu Picchu'], [/\bdead woman's pass\b/gi, "Dead Woman's Pass"],
+  [/\brunkurakay pass\b/gi, 'Runkurakay Pass'], [/\bwiñay wayna\b/gi, 'Wiñay Wayna'], [/\bayapata camp\b/gi, 'Ayapata Camp'],
+  [/\bphase (i{1,3}|iv)\b/gi, (m, n) => 'phase ' + n.toUpperCase()], [/\b1rm\b/gi, '1RM'], [/\bprs\b/gi, 'PRs'],
+  [/\bicloud\b/gi, 'iCloud'],
+];
+function fixWord(w) {
+  const lw = w.toLowerCase();
+  if (KEEP_UPPER.has(lw) && lw !== 'kg' && lw !== 'cm') return w.toUpperCase();
+  if (LOWER_UNITS.has(lw)) return lw;
+  if (CAP_WORDS.has(lw)) return lw === 'icloud' ? 'iCloud' : lw.charAt(0).toUpperCase() + lw.slice(1);
+  if (w.length === 1 && lw !== 'a') return w.toUpperCase();
+  return lw;
+}
+export function toSentenceCase(str) {
+  if (!str || !/[A-Z]{2}/.test(str) || /[a-z]/.test(str)) return str;
+  let out = str.replace(/[A-Za-zÀ-ÿñÑ0-9']+/g, (w) => (/^\d/.test(w) ? w.toLowerCase().replace(/rm$/, 'RM') : fixWord(w)));
+  for (const [re, rep] of PHRASES) out = out.replace(re, rep);
+  // Capitalize the start and the first letter after a separator.
+  out = out.replace(/(^|[·:—–\-•|?!.]\s+|^\s*[^A-Za-z0-9]*\s*)([a-zà-ÿñ][a-zà-ÿñ']*)/g, (m, p, w) => (LOWER_UNITS.has(w) ? m : p + w.charAt(0).toUpperCase() + w.slice(1)));
+  return out;
+}
+const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT']);
+export function sentenceCaseTree(root) {
+  if (!root) return;
+  if (root.nodeType === 3) { // text node
+    const p = root.parentNode;
+    if (!p || SKIP_TAGS.has(p.nodeName) || p.closest?.('.brand, [data-keep-case]')) return;
+    const v = root.nodeValue; const nv = toSentenceCase(v);
+    if (nv !== v) root.nodeValue = nv;
+    return;
+  }
+  if (root.nodeType !== 1 || SKIP_TAGS.has(root.nodeName) || root.closest?.('.brand, [data-keep-case]')) return;
+  for (const attr of ['placeholder', 'aria-label', 'title']) {
+    const a = root.getAttribute?.(attr);
+    if (a) { const na = toSentenceCase(a); if (na !== a) root.setAttribute(attr, na); }
+  }
+  if (root.tagName === 'OPTION') { const t = root.textContent; const nt = toSentenceCase(t); if (nt !== t) root.textContent = nt; return; }
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n = walker.nextNode();
+  while (n) {
+    if (n.nodeType === 3) sentenceCaseTree(n);
+    else if (n.getAttribute) {
+      for (const attr of ['placeholder', 'aria-label', 'title']) {
+        const a = n.getAttribute(attr);
+        if (a) { const na = toSentenceCase(a); if (na !== a) n.setAttribute(attr, na); }
+      }
+    }
+    n = walker.nextNode();
+  }
+}
+export function startSentenceCase() {
+  sentenceCaseTree(document.body);
+  const obs = new MutationObserver((muts) => {
+    for (const m of muts) {
+      if (m.type === 'characterData') sentenceCaseTree(m.target);
+      else m.addedNodes.forEach((n) => sentenceCaseTree(n));
+    }
+  });
+  obs.observe(document.body, { childList: true, subtree: true, characterData: true });
 }

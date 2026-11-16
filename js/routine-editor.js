@@ -1,14 +1,12 @@
 // FORGE routine editor
-import * as db from './db.js?v=24';
+import * as db from './db.js?v=27';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
-  catBadge, focusTagEl, uid, toast, confirmModal, openPicker,
-  DAY_ORDER, DAY_LABELS,
-} from './ui.js?v=24';
+  catBadge, focusTagEl, routineTags, uid, toast, confirmModal, openPicker, todayIso,
+} from './ui.js?v=27';
+import { PHASES, currentPhase, routineEntryFromBlock } from './program.js?v=27';
 
-const FOCUS_TAGS = ['push', 'pull', 'legs', 'upper', 'core', 'rehab', 'cardio', 'recovery'];
-
-export async function renderRoutineEditor(container, existing) {
+export async function renderRoutineEditor(container, existing, phaseIdForNew) {
   const isEdit = !!existing;
   const allExercises = await db.getAll('exercises');
   const exById = new Map(allExercises.map((e) => [e.id, e]));
@@ -16,8 +14,10 @@ export async function renderRoutineEditor(container, existing) {
   const model = isEdit ? JSON.parse(JSON.stringify(existing)) : {
     id: uid('rt'),
     name: '',
-    folderName: 'Custom',
-    scheduledDay: null,
+    folderName: null,
+    phaseId: phaseIdForNew || currentPhase(todayIso()).id,
+    scheduleDays: [],
+    scheduleDates: [],
     focusTags: [],
     exercises: [],
     isActive: true,
@@ -34,29 +34,13 @@ export async function renderRoutineEditor(container, existing) {
 
   // Basic info form
   const form = el('div', { class: 'form-stack' });
-  form.appendChild(formField('NAME', 'text', 'name', model.name, 'e.g. Mon: Push + Core'));
-  form.appendChild(formField('FOLDER (OPTIONAL)', 'text', 'folderName', model.folderName || '', 'e.g. Weekly Program'));
-  form.appendChild(formSelect('SCHEDULED DAY', 'scheduledDay', model.scheduledDay || '', [
-    { value: '', label: 'UNSCHEDULED' },
-    ...DAY_ORDER.map((d) => ({ value: d, label: DAY_LABELS[d] })),
+  form.appendChild(formField('NAME', 'text', 'name', model.name, 'e.g. Pull + Core'));
+  form.appendChild(formSelect('PHASE', 'phaseId', model.phaseId || '', [
+    ...PHASES.map((p) => ({ value: p.id, label: `${p.name} · ${p.dates}` })),
+    { value: '', label: 'NO PHASE (ANY TIME)' },
   ]));
   container.appendChild(section('DETAILS', form));
-
-  // Focus tag toggles
-  const tagRow = el('div', { class: 'filter-row' });
-  const activeTags = new Set(model.focusTags || []);
-  const tagChips = new Map();
-  for (const t of FOCUS_TAGS) {
-    const chip = el('button', { class: 'filter-chip' + (activeTags.has(t) ? ' filter-chip-active' : ''), text: t.toUpperCase() });
-    chip.addEventListener('click', () => {
-      if (activeTags.has(t)) activeTags.delete(t); else activeTags.add(t);
-      chip.classList.toggle('filter-chip-active');
-      model.focusTags = [...activeTags];
-    });
-    tagRow.appendChild(chip);
-    tagChips.set(t, chip);
-  }
-  container.appendChild(section('FOCUS TAGS', tagRow));
+  container.appendChild(el('div', { class: 'form-hint', style: 'margin: -8px 20px 16px;', text: 'CATEGORY TAGS COME FROM THE EXERCISES. PUT IT ON A DAY WITH "ADD TO DAY" AFTER SAVING.' }));
 
   // Exercises editor
   const exSection = el('div', {});
@@ -79,12 +63,29 @@ export async function renderRoutineEditor(container, existing) {
   }
   renderExercises();
 
-  container.appendChild(section('ADD',
-    el('button', { class: 'btn btn-primary', onclick: () => addExerciseToRoutine(model, renderExercises, exById) }, [
-      el('span', { class: 'btn-title', text: '+ ADD EXERCISE FROM LIBRARY' }),
-      el('span', { class: 'btn-sub', text: 'PICK ONE OR MORE FROM YOUR EXERCISE LIBRARY' }),
-    ])
-  ));
+  const fromBlocks = el('button', { class: 'btn btn-primary' }, [
+    el('span', { class: 'btn-title', text: '+ ADD FROM BLOCKS' }),
+    el('span', { class: 'btn-sub', text: 'TICK EXERCISES FROM PULL, LEGS, PUSH, CORE, CARDIO' }),
+  ]);
+  fromBlocks.addEventListener('click', async () => {
+    const { openBlockPicker } = await import('./plan.js?v=27');
+    const ph = form.querySelector('[name="phaseId"]').value || currentPhase(todayIso()).id;
+    openBlockPicker(ph, (entries) => {
+      for (const e of entries) {
+        if (!e.exerciseId) continue;
+        model.exercises.push(routineEntryFromBlock(e, model.exercises.length));
+      }
+      renderExercises();
+      toast(`ADDED ${entries.length} EXERCISE${entries.length === 1 ? '' : 'S'}`, 'ok');
+    });
+  });
+  container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
+    fromBlocks,
+    el('button', { class: 'btn btn-outline', onclick: () => addExerciseToRoutine(model, renderExercises, exById) }, [
+      el('span', { class: 'btn-title', text: '+ ADD FROM LIBRARY' }),
+      el('span', { class: 'btn-sub', text: 'ANY EXERCISE, OR CREATE A NEW ONE' }),
+    ]),
+  ])));
 
   // Save / delete
   const saveBtn = el('button', { class: 'btn btn-primary' }, [
@@ -93,8 +94,9 @@ export async function renderRoutineEditor(container, existing) {
   ]);
   saveBtn.addEventListener('click', async () => {
     model.name = form.querySelector('[name="name"]').value.trim();
-    model.folderName = form.querySelector('[name="folderName"]').value.trim() || null;
-    model.scheduledDay = form.querySelector('[name="scheduledDay"]').value || null;
+    model.phaseId = form.querySelector('[name="phaseId"]').value || null;
+    model.exercises.forEach((e, i) => { e.order = i; });
+    model.focusTags = routineTags(model, exById);
     model.updatedAt = new Date().toISOString();
     if (!model.name) { toast('NAME REQUIRED', 'error'); return; }
     try {
@@ -289,7 +291,7 @@ function removeSet(ex, rerender) {
 }
 
 async function addExerciseToRoutine(model, rerender, exById) {
-  const { openExercisePicker } = await import('./exercise-picker.js?v=24');
+  const { openExercisePicker } = await import('./exercise-picker.js?v=27');
   openExercisePicker('ADD EXERCISE', (ex) => {
     exById.set(ex.id, ex);
     model.exercises.push(routineEntryFor(ex, model.exercises.length));
@@ -303,6 +305,7 @@ async function addExerciseToRoutine(model, rerender, exById) {
 export function routineEntryFor(ex, order) {
   const isCardio = ex.category === 'cardio';
   return {
+    substituteIds: ex.substituteIds || [],
     exerciseId: ex.id,
     exerciseName: ex.name,
     order,

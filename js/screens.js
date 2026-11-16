@@ -1,17 +1,18 @@
 // FORGE screens: home, plan, routine detail, library, exercise, me
-import * as db from './db.js?v=24';
-import { downloadBackup, restoreFromBackupJson } from './export.js?v=24';
-import { importBundledHevyBackup, importHevyJson } from './import.js?v=24';
+import * as db from './db.js?v=27';
+import { downloadBackup, restoreFromBackupJson } from './export.js?v=27';
+import { importBundledHevyBackup, importHevyJson } from './import.js?v=27';
 import {
   el, section, notFound, formField, formSelect, formTextarea,
-  catBadge, focusTagEl, progressBar,
+  catBadge, focusTagEl, progressBar, routineTags, localDay, todayIso,
   DAY_ORDER, DAY_LABELS, DAY_FULL, CATEGORIES,
   currentDayKey, daysUntil, formatDuration, esc, uid,
   toast, confirmModal, openPicker, getActiveSession,
-} from './ui.js?v=24';
-import { exerciseSuggestion } from './progression.js?v=24';
-import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=24';
-import { icon } from './icons.js?v=24';
+} from './ui.js?v=27';
+import { exerciseSuggestion } from './progression.js?v=27';
+import { TRAIL, getStatus, fmtMi, fmtFt, KM_PER_MI, WORKOUT_POINTS, SKIP_PENALTY } from './trail.js?v=27';
+import { icon } from './icons.js?v=27';
+import { CAT_LABEL, routinesOn, weekDates, scheduleSummary, guideFor, targetsForExercise, phaseById, dayKeyOfIso } from './program.js?v=27';
 
 function suggestionNoteEl(sg) {
   return el('div', { class: `ex-suggest ex-suggest-${sg.kind}` }, [
@@ -22,21 +23,15 @@ function suggestionNoteEl(sg) {
 
 // ---------- HOME ----------
 export async function renderHome(container) {
-  const dayKey = currentDayKey();
-  const [routines, measurements, goals, sessions] = await Promise.all([
-    db.getAll('routines'), db.getAll('bodyMeasurements'), db.getAll('goals'), db.getAll('sessions'),
-  ]);
-  const todaysRoutines = routines.filter((r) => r.scheduledDay === dayKey && r.isActive !== false);
-  const latestWeight = measurements.length
-    ? [...measurements].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0] : null;
+  const today = todayIso();
+  const [routines, sessions, exercises] = await Promise.all([db.getAll('routines'), db.getAll('sessions'), db.getAll('exercises')]);
+  const exById = new Map(exercises.map((e) => [e.id, e]));
+  const todaysRoutines = routinesOn(routines, today);
   const activeSession = sessions.find((s) => s.isActive === true) || null;
   const completedSessions = sessions.filter((s) => !s.isActive && s.completedAt);
-  const inca = goals.find((g) => g.id === 'gl_inca_trail');
-  const weightGoal = goals.find((g) => g.id === 'gl_weight');
-  const pushupGoal = goals.find((g) => g.id === 'gl_pushup');
 
   container.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'eyebrow', text: `${DAY_FULL[dayKey]}  ·  ${new Date().toDateString().toUpperCase()}` }),
+    el('div', { class: 'eyebrow', text: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase() }),
     el('h1', { text: 'TODAY' }),
   ]));
 
@@ -45,7 +40,7 @@ export async function renderHome(container) {
       el('a', { class: 'today-card', href: `#/session/${activeSession.id}`, style: 'border-color: var(--green);' }, [
         el('div', { class: 'today-label', style: 'color: var(--green);', text: 'RESUME WORKOUT' }),
         el('div', { class: 'today-name', text: activeSession.routineName || '(session)' }),
-        el('div', { class: 'today-meta', text: `STARTED ${new Date(activeSession.startedAt).toLocaleTimeString()}` }),
+        el('div', { class: 'today-meta', text: activeSession.logDate ? `LOGGING FOR ${activeSession.logDate}` : `STARTED ${new Date(activeSession.startedAt).toLocaleTimeString()}` }),
         el('div', { class: 'today-cta', style: 'color: var(--green);', text: 'RESUME →' }),
       ])
     ));
@@ -56,25 +51,30 @@ export async function renderHome(container) {
 
   let todayCard;
   if (todaysRoutines.length === 0) {
-    todayCard = el('div', { class: 'today-card today-rest' }, [
-      el('div', { class: 'today-label', text: 'REST DAY' }),
-      el('div', { class: 'today-sub', text: 'NO ROUTINE SCHEDULED FOR TODAY' }),
+    todayCard = el('a', { class: 'today-card today-rest', href: '#/plan' }, [
+      el('div', { class: 'today-label', text: 'NOTHING PLANNED' }),
+      el('div', { class: 'today-sub', text: 'Add a routine to today in Plan' }),
     ]);
   } else {
-    const r = todaysRoutines[0];
-    todayCard = el('a', { class: 'today-card', href: `#/routine/${r.id}` }, [
-      el('div', { class: 'today-label', text: "TODAY'S WORKOUT" }),
-      el('div', { class: 'today-name', text: r.name }),
-      el('div', { class: 'tag-row' }, (r.focusTags || []).map(focusTagEl)),
-      el('div', { class: 'today-meta', text: `${(r.exercises || []).length} EXERCISES  ·  TAP TO VIEW` }),
+    todayCard = el('div', { class: 'today-stack' }, todaysRoutines.map((r) => el('div', { class: 'today-card' }, [
+      el('a', { class: 'today-link', href: `#/routine/${r.id}` }, [
+        el('div', { class: 'today-name', text: r.name }),
+        el('div', { class: 'tag-row' }, routineTags(r, exById).map(focusTagEl)),
+        el('div', { class: 'today-meta', text: `${(r.exercises || []).length} EXERCISES  ·  TAP TO VIEW` }),
+      ]),
       ...todayStakes(trail),
-      el('div', { class: 'today-cta', text: 'GO →' }),
-    ]);
+      el('button', { class: 'btn btn-primary today-start', onclick: () => startRoutineNow(r) }, [ el('span', { class: 'btn-title', text: 'START WORKOUT' }) ]),
+    ])));
   }
   container.appendChild(section("TODAY'S WORKOUT", todayCard));
-
+  container.appendChild(section('THIS WEEK', weeklyAdherence(completedSessions, routines)));
   container.appendChild(await caloriesCardSection());
   container.appendChild(await stepsCardSection());
+}
+
+async function startRoutineNow(routine) {
+  const activeSession = await getActiveSession();
+  return onStartWorkoutClick(routine, activeSession);
 }
 
 // ---------- TRAIL (v0.9.0) ----------
@@ -154,11 +154,11 @@ export async function renderTrail(container) {
   const t = await getStatus();
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/home', class: 'crumb', text: '‹ HOME' }),
+      el('a', { href: '#/home', class: 'crumb', text: '‹ TODAY' }),
       el('span', { text: '  ·  CLASSIC 4-DAY ROUTE' }),
     ]),
     el('h1', { text: TRAIL.name }),
-    t.pausedToday ? el('p', { class: 'hero-sub', text: 'PAUSED · NO PENALTIES · EVERYTHING HELD. RESUME IN ME → SETTINGS.' }) : null,
+    t.pausedToday ? el('p', { class: 'hero-sub', text: 'PAUSED · NO PENALTIES · EVERYTHING HELD. RESUME IN ME (GEAR ICON).' }) : null,
   ]));
 
   const totalMi = TRAIL.totalKm / KM_PER_MI;
@@ -198,7 +198,7 @@ export async function renderTrail(container) {
     'Treadmill: speed × time, climb from incline. Elliptical and other cardio: climb from your heart rate calibration. ' +
     'Stairmaster: steps × step height. Strength: 1/4 credit from your heart rate. Steps never move you on the trail. ' +
     'Points: workouts (more for a streak), +10 per meal logged, a bonus at 12,500 steps. Skipping a scheduled day costs 20 points. ' +
-    'Calibration, step height, and pause live in ME → SETTINGS.' })));
+    'Calibration, step height, and pause live in ME (gear icon, top right).' })));
 }
 
 async function renderRecentPrsCard(session) {
@@ -215,119 +215,26 @@ async function renderRecentPrsCard(session) {
 }
 
 async function caloriesCardSection() {
-  const KG_PER_LB = 0.453592;
-  const MET_BY_NAME_HINT = [
-    { m: 'stairmaster', met: 9.0 }, { m: 'stair', met: 8.0 },
-    { m: 'incline walk', met: 8.0 }, { m: 'treadmill', met: 6.0 },
-    { m: 'cycling', met: 7.0 }, { m: 'bike', met: 7.0 },
-    { m: 'elliptical', met: 5.0 }, { m: 'walk', met: 3.8 },
-    { m: 'run', met: 9.0 }, { m: 'row', met: 7.0 },
-  ];
-  const MET_BY_CATEGORY = { strength: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
-
-  const todayIsoLocal = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  })();
-
-  const [budget, netGoal, meals, sessions, exercises, measurements, override] = await Promise.all([
-    db.getSetting('calorieBudget', 2000),
-    db.getSetting('netCalorieGoal', 1800),
-    db.getAll('mealLog'),
-    db.getAll('sessions'),
-    db.getAll('exercises'),
-    db.getAll('bodyMeasurements'),
-    db.get('dailyCalorieAdjustments', todayIsoLocal),
-  ]);
-
-  const foodKcal = meals.filter((m) => m.date === todayIsoLocal).reduce((s, m) => s + (m.calories || 0), 0);
-
-  // Auto exercise kcal (MET × weight × duration for today's sessions)
-  const exById = new Map(exercises.map((e) => [e.id, e]));
-  const bodyLb = (() => {
-    const w = measurements.filter((m) => m.weight != null).sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
-    return w?.weight ?? 160;
-  })();
-  const kg = bodyLb * KG_PER_LB;
-  function metForEx(libEx) {
-    if (!libEx) return MET_BY_CATEGORY.strength;
-    const n = (libEx.name || '').toLowerCase();
-    for (const h of MET_BY_NAME_HINT) if (n.includes(h.m)) return h.met;
-    return MET_BY_CATEGORY[libEx.category] || MET_BY_CATEGORY.strength;
-  }
-  let autoKcal = 0;
-  for (const s of sessions) {
-    if (s.isActive || !s.completedAt || !s.startedAt) continue;
-    if (s.completedAt.slice(0, 10) !== todayIsoLocal) continue;
-    const hours = (new Date(s.completedAt) - new Date(s.startedAt)) / 3600000;
-    if (hours <= 0) continue;
-    const exs = s.exercises || [];
-    if (exs.length === 0) continue;
-    const avgMet = exs.reduce((n, ex) => n + metForEx(exById.get(ex.exerciseId)), 0) / exs.length;
-    autoKcal += Math.round(avgMet * kg * hours);
-  }
-  const isOverride = override?.exerciseCaloriesOverride != null;
-  const exKcal = isOverride ? override.exerciseCaloriesOverride : autoKcal;
-  const net = foodKcal - exKcal;
-  const foodPct = budget > 0 ? Math.min(150, (foodKcal / budget) * 100) : 0;
-  const netPct = netGoal > 0 ? Math.min(150, (net / netGoal) * 100) : 0;
-
-  // Editable exercise calories input (creates/updates daily override)
-  const input = el('input', {
-    class: 'form-input calories-input', type: 'number', min: '0', step: '1',
-    placeholder: isOverride ? '' : `AUTO ${autoKcal}`,
-    value: isOverride ? String(override.exerciseCaloriesOverride) : '',
-  });
-  const hint = el('div', { class: 'calories-hint',
-    text: isOverride ? `MANUAL · CLEAR TO USE AUTO (${autoKcal})` : `AUTO-ESTIMATED FROM TODAY'S WORKOUTS` });
-  const saveBtn = el('button', { class: 'btn btn-primary calories-save' }, [ el('span', { class: 'btn-title', text: 'SAVE' }) ]);
-  saveBtn.addEventListener('click', async () => {
-    const v = input.value.trim();
-    if (v === '') { await db.remove('dailyCalorieAdjustments', todayIsoLocal); toastLocal(`CLEARED · USING AUTO (${autoKcal})`); return; }
-    const n = Number(v);
-    if (!Number.isFinite(n) || n < 0) { toastLocal('ENTER A NUMBER', 'error'); return; }
-    await db.put('dailyCalorieAdjustments', { date: todayIsoLocal, exerciseCaloriesOverride: n, updatedAt: new Date().toISOString() });
-    toastLocal(`SAVED · ${n} KCAL BURNED TODAY`);
-  });
-
-  function toastLocal(msg, kind = 'ok') {
-    const t = document.getElementById('toast');
-    if (!t) return;
-    t.textContent = msg; t.className = `toast show toast-${kind}`;
-    setTimeout(() => { t.className = `toast toast-${kind}`; }, 2200);
-    setTimeout(() => refresh(), 400);
-  }
-
-  const card = el('div', { class: 'calories-card' }, [
+  const { exerciseKcalForDate, foodKcalForDate, latestBodyWeightLb } = await import('./food.js?v=27');
+  const today = todayIso();
+  const exercises = await db.getAll('exercises');
+  const exIndex = new Map(exercises.map((e) => [e.id, e]));
+  const [foodKcal, ex] = await Promise.all([foodKcalForDate(today), latestBodyWeightLb().then((lb) => exerciseKcalForDate(today, exIndex, lb))]);
+  const card = el('a', { class: 'calories-card calories-card-compact', href: '#/food' }, [
     el('div', { class: 'calories-row' }, [
       el('div', { class: 'calories-col' }, [
         el('span', { class: 'calories-label', text: 'FOOD' }),
         el('span', { class: 'calories-value', text: String(foodKcal) }),
+        el('span', { class: 'calories-unit', text: 'KCAL' }),
       ]),
       el('div', { class: 'calories-col' }, [
-        el('span', { class: 'calories-label', text: 'BURN' }),
-        el('span', { class: 'calories-value calories-value-burn', text: String(exKcal) }),
+        el('span', { class: 'calories-label', text: 'WORKOUT' }),
+        el('span', { class: 'calories-value calories-value-burn', text: String(ex.kcal) }),
+        el('span', { class: 'calories-unit', text: ex.isOverride ? 'KCAL · MANUAL' : 'KCAL' }),
       ]),
-      el('div', { class: 'calories-col' }, [
-        el('span', { class: 'calories-label', text: 'NET' }),
-        el('span', { class: 'calories-value calories-value-net', style: `color: ${net <= netGoal ? 'var(--green)' : 'var(--red)'};`, text: String(net) }),
-      ]),
-    ]),
-    el('div', { class: 'calories-bars' }, [
-      progressBar(foodPct, { label: `FOOD vs BUDGET (${budget})`, value: `${foodKcal} / ${budget}` }),
-      progressBar(netPct, { label: `NET vs GOAL (${netGoal})`, value: `${net} / ${netGoal}` }),
-    ]),
-    el('div', { class: 'calories-edit' }, [
-      el('span', { class: 'calories-label', text: 'BURN OVERRIDE' }),
-      el('div', { class: 'calories-edit-row' }, [ input, saveBtn ]),
-      hint,
-    ]),
-    el('a', { class: 'btn btn-outline calories-food-link', href: '#/food' }, [
-      el('span', { class: 'btn-title', text: 'LOG FOOD →' }),
-      el('span', { class: 'btn-sub', text: 'BREAKFAST · LUNCH · DINNER · SNACKS' }),
     ]),
   ]);
-  return section('DAILY CALORIES', card);
+  return section('CALORIES', card);
 }
 
 async function stepsCardSection() {
@@ -364,13 +271,13 @@ async function stepsCardSection() {
   ]);
   saveBtn.addEventListener('click', async () => {
     const v = Number(stepsInput.value);
-    if (!v || v < 0) { const { toast } = await import('./ui.js?v=24'); toast('ENTER A STEP COUNT', 'error'); return; }
+    if (!v || v < 0) { const { toast } = await import('./ui.js?v=27'); toast('ENTER A STEP COUNT', 'error'); return; }
     const dist = strideIn ? Math.round((v * strideIn) / 63360 * 100) / 100 : null;
     await db.put('dailyActivity', {
       date: todayIso, steps: v, distanceMi: dist,
       strideLengthIn: strideIn, updatedAt: new Date().toISOString(),
     });
-    const { toast } = await import('./ui.js?v=24');
+    const { toast } = await import('./ui.js?v=27');
     toast(`SAVED · ${v.toLocaleString()} STEPS · ${dist} MI`, 'ok');
   });
 
@@ -406,31 +313,23 @@ function statMini(label, value, sub) {
 }
 
 function weeklyAdherence(completedSessions, routines) {
-  const now = new Date();
-  const dow = now.getDay();
-  const daysSinceMon = (dow + 6) % 7;
-  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMon);
-  const activeByDay = {};
-  for (const r of routines.filter((r) => r.isActive !== false && r.scheduledDay)) activeByDay[r.scheduledDay] = true;
-
+  const today = todayIso();
+  const doneDays = new Set(completedSessions.map((s) => localDay(s.completedAt)));
   const wrap = el('div', { class: 'week-dots' });
-  for (let i = 0; i < 7; i++) {
-    const dayDate = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-    const dayIso = dayDate.toISOString().slice(0, 10);
-    const dayKey = DAY_ORDER[i];
-    const scheduled = !!activeByDay[dayKey];
-    const done = completedSessions.some((s) => s.completedAt && s.completedAt.slice(0, 10) === dayIso);
-    const isFuture = dayDate > now;
-    const isToday = dayDate.toDateString() === now.toDateString();
+  for (const d of weekDates(today)) {
+    const scheduled = routinesOn(routines, d).length > 0;
+    const done = doneDays.has(d);
+    const isFuture = d > today;
     let cls = 'week-dot';
     if (done) cls += ' week-dot-done';
     else if (isFuture && scheduled) cls += ' week-dot-scheduled';
-    else if (!isFuture && scheduled) cls += ' week-dot-missed';
+    else if (!isFuture && scheduled && d < today) cls += ' week-dot-missed';
+    else if (scheduled) cls += ' week-dot-scheduled';
     else cls += ' week-dot-rest';
-    if (isToday) cls += ' week-dot-today';
+    if (d === today) cls += ' week-dot-today';
     wrap.appendChild(el('div', { class: cls }, [
-      el('span', { class: 'week-dot-day', text: DAY_LABELS[dayKey] }),
-      el('span', { class: 'week-dot-mark', text: done ? '✓' : (isFuture && scheduled) ? '◇' : (!isFuture && scheduled) ? '×' : '·' }),
+      el('span', { class: 'week-dot-day', text: dayKeyOfIso(d).toUpperCase() }),
+      el('span', { class: 'week-dot-mark', text: done ? '✓' : scheduled ? (d < today ? '×' : '◇') : '·' }),
     ]));
   }
   return wrap;
@@ -506,103 +405,26 @@ function countdownCard(label, targetDate, sub) {
 }
 
 // ---------- PLAN ----------
-export async function renderPlan(container) {
-  const routines = await db.getAll('routines');
-  const activeRoutines = routines.filter((r) => r.isActive !== false);
-  const byDay = {};
-  for (const key of DAY_ORDER) byDay[key] = [];
-  const unscheduled = [];
-  for (const r of activeRoutines) {
-    if (r.scheduledDay && DAY_ORDER.includes(r.scheduledDay)) byDay[r.scheduledDay].push(r);
-    else unscheduled.push(r);
-  }
-  const todayKey = currentDayKey();
-
-  container.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'eyebrow', text: `WEEKLY PROGRAM  ·  ${activeRoutines.length} ROUTINES` }),
-    el('h1', { text: 'THIS WEEK' }),
-    el('p', { class: 'hero-sub', text: 'Tap a day to see its routine and exercises.' }),
-  ]));
-
-  const dayList = el('div', { class: 'day-list' });
-  for (const key of DAY_ORDER) dayList.appendChild(dayCard(key, byDay[key], key === todayKey));
-  container.appendChild(section('SCHEDULE', dayList));
-
-  if (unscheduled.length > 0) {
-    const others = el('div', { class: 'day-list' });
-    for (const r of unscheduled) others.appendChild(routineRow(r));
-    container.appendChild(section(`UNSCHEDULED  ·  ${unscheduled.length}`, others));
-  }
-
-  container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [
-    el('button', { class: 'btn btn-primary', onclick: onQuickWorkout }, [
-      el('span', { class: 'btn-title', text: '+ QUICK WORKOUT' }),
-      el('span', { class: 'btn-sub', text: 'OFF-PLAN SESSION · ADD ANY EXERCISE · COUNTS ON THE TRAIL' }),
-    ]),
-    el('a', { class: 'btn btn-outline', href: '#/routine/new' }, [
-      el('span', { class: 'btn-title', text: '+ NEW ROUTINE' }),
-      el('span', { class: 'btn-sub', text: 'CREATE A CUSTOM WORKOUT' }),
-    ]),
-    el('a', { class: 'btn btn-outline', href: '#/library' }, [
-      el('span', { class: 'btn-title', text: 'EXERCISE LIBRARY' }),
-      el('span', { class: 'btn-sub', text: 'BROWSE, EDIT, AND ORGANIZE YOUR EXERCISES' }),
-    ]),
-  ])));
+export async function renderPlan(container, params) {
+  const m = await import('./plan.js?v=27');
+  return m.renderPlan(container, params);
 }
-
-async function onQuickWorkout() {
-  const active = await getActiveSession();
-  if (active) { toast('FINISH OR DISCARD THE ACTIVE WORKOUT FIRST', 'error'); window.location.hash = `#/session/${active.id}`; return; }
-  const { startSession } = await import('./workout.js?v=24');
-  const s = await startSession({ id: null, name: 'QUICK WORKOUT', scheduledDay: null, exercises: [] });
-  window.location.hash = `#/session/${s.id}`;
-}
-
-function dayCard(dayKey, routines, isToday) {
-  const cardClass = `day-card ${isToday ? 'day-today' : ''} ${routines.length === 0 ? 'day-rest' : ''}`;
-  const children = [
-    el('div', { class: 'day-col' }, [
-      el('div', { class: 'day-name', text: DAY_LABELS[dayKey] }),
-      isToday ? el('div', { class: 'day-tag', text: 'TODAY' }) : null,
-    ]),
-  ];
-  if (routines.length === 0) {
-    children.push(el('div', { class: 'day-body' }, [ el('div', { class: 'day-empty', text: 'REST' }) ]));
-  } else {
-    const body = el('div', { class: 'day-body' });
-    for (const r of routines) {
-      body.appendChild(el('a', { class: 'day-routine-link', href: `#/routine/${r.id}` }, [
-        el('div', { class: 'day-routine-name', text: r.name }),
-        el('div', { class: 'tag-row day-tag-row' }, (r.focusTags || []).map(focusTagEl)),
-        el('div', { class: 'day-routine-meta', text: `${(r.exercises || []).length} EXERCISES` }),
-      ]));
-    }
-    children.push(body);
-  }
-  return el('div', { class: cardClass }, children);
-}
-
-function routineRow(r) {
-  return el('a', { class: 'nav-row', href: `#/routine/${r.id}` }, [
-    el('div', { class: 'nav-row-main' }, [
-      el('div', { class: 'nav-row-title', text: r.name }),
-      el('div', { class: 'nav-row-sub', text: `${(r.exercises || []).length} EXERCISES${r.folderName ? '  ·  ' + r.folderName.toUpperCase() : ''}` }),
-    ]),
-    el('div', { class: 'nav-row-arrow', text: '›' }),
-  ]);
+export async function renderBlock(container, params) {
+  const m = await import('./plan.js?v=27');
+  return m.renderBlock(container, params);
 }
 
 // ---------- ROUTINE (view; edit lives in routine-editor.js) ----------
 export async function renderRoutine(container, params) {
   const [routineId, action] = params;
   if (routineId === 'new') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=24');
-    return renderRoutineEditor(container, null);
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=27');
+    return renderRoutineEditor(container, null, action || null);
   }
   const routine = routineId ? await db.get('routines', routineId) : null;
   if (!routine) { container.appendChild(notFound('ROUTINE NOT FOUND', '#/plan', 'PLAN')); return; }
   if (action === 'edit') {
-    const { renderRoutineEditor } = await import('./routine-editor.js?v=24');
+    const { renderRoutineEditor } = await import('./routine-editor.js?v=27');
     return renderRoutineEditor(container, routine);
   }
   return renderRoutineDetail(container, routine);
@@ -612,17 +434,17 @@ async function renderRoutineDetail(container, routine) {
   const allExercises = await db.getAll('exercises');
   const exById = new Map(allExercises.map((e) => [e.id, e]));
   const activeSession = await getActiveSession();
+  const ph = routine.phaseId ? phaseById(routine.phaseId) : null;
+  const tags = routineTags(routine, exById);
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/plan', class: 'crumb', text: '‹ PLAN' }),
-      el('span', { text: '  ·  ' + (routine.folderName || 'ROUTINE').toUpperCase() }),
+      el('a', { href: ph ? `#/plan/${ph.id}` : '#/plan', class: 'crumb', text: '‹ PLAN' }),
+      el('span', { text: '  ·  ' + (ph ? ph.name : 'ROUTINE') }),
     ]),
     el('h1', { text: routine.name }),
-    el('p', { class: 'hero-meta', text: `${routine.scheduledDay ? DAY_FULL[routine.scheduledDay] + '  ·  ' : ''}${(routine.exercises || []).length} EXERCISES` }),
-    (routine.focusTags && routine.focusTags.length > 0)
-      ? el('div', { class: 'tag-row', style: 'margin-top: 12px;' }, routine.focusTags.map(focusTagEl))
-      : null,
+    el('p', { class: 'hero-meta', text: `${(routine.exercises || []).length} EXERCISES  ·  ${scheduleSummary(routine)}` }),
+    tags.length ? el('div', { class: 'tag-row', style: 'margin-top: 12px;' }, tags.map(focusTagEl)) : null,
   ]));
 
   const exercises = routine.exercises || [];
@@ -632,13 +454,13 @@ async function renderRoutineDetail(container, routine) {
     const list = el('div', { class: 'exercise-list' });
     exercises.forEach((ex, idx) => {
       const libEx = exById.get(ex.exerciseId);
-      const row = exerciseRow(ex, idx, libEx?.category || 'strength', libEx);
+      const row = exerciseRow(ex, idx, libEx?.category || 'strength', libEx, exById);
       list.appendChild(row);
       exerciseSuggestion(ex.exerciseId).then((sg) => {
         if (sg) row.querySelector('.exercise-main')?.appendChild(suggestionNoteEl(sg));
       });
     });
-    container.appendChild(section(`EXERCISES  ·  ${exercises.length}`, list));
+    container.appendChild(section(`EXERCISES  ·  ${exercises.length}  ·  TAP FOR INSTRUCTIONS`, list));
   }
 
   const isActiveForThis = activeSession && activeSession.routineId === routine.id;
@@ -648,16 +470,20 @@ async function renderRoutineDetail(container, routine) {
     el('span', { class: 'btn-sub', text: isActiveForThis ? 'CONTINUE ACTIVE SESSION' : isActiveOther ? '⚠ ANOTHER SESSION IS ACTIVE' : 'BEGIN LOGGING SETS' }),
   ]);
   startBtn.addEventListener('click', () => onStartWorkoutClick(routine, activeSession));
-
+  const schedBtn = el('button', { class: 'btn btn-outline' }, [
+    el('span', { class: 'btn-title', text: 'ADD TO DAY' }),
+    el('span', { class: 'btn-sub', text: 'REPEAT ON WEEKDAYS OR PICK DATES' }),
+  ]);
+  schedBtn.addEventListener('click', async () => { const m = await import('./plan.js?v=27'); m.openScheduleSheet(routine); });
   const editBtn = el('a', { class: 'btn btn-outline', href: `#/routine/${routine.id}/edit` }, [
     el('span', { class: 'btn-title', text: 'EDIT ROUTINE' }),
-    el('span', { class: 'btn-sub', text: 'CHANGE EXERCISES, SETS, DAY, TAGS' }),
+    el('span', { class: 'btn-sub', text: 'CHANGE EXERCISES, SETS, NAME, PHASE' }),
   ]);
-  container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [startBtn, editBtn])));
+  container.appendChild(section('ACTIONS', el('div', { class: 'action-stack' }, [startBtn, schedBtn, editBtn])));
 }
 
 async function onStartWorkoutClick(routine, activeSession) {
-  const { startSession } = await import('./workout.js?v=24');
+  const { startSession } = await import('./workout.js?v=27');
   if (activeSession) {
     if (activeSession.routineId === routine.id) { window.location.hash = `#/session/${activeSession.id}`; return; }
     confirmModal('ANOTHER SESSION IS ACTIVE',
@@ -673,7 +499,7 @@ async function onStartWorkoutClick(routine, activeSession) {
   window.location.hash = `#/session/${s.id}`;
 }
 
-function exerciseRow(ex, idx, category, libEx) {
+function exerciseRow(ex, idx, category, libEx, exById) {
   const setsCount = (ex.sets || []).length;
   const firstSet = (ex.sets || [])[0];
   let setsSummary = `${setsCount} SET${setsCount === 1 ? '' : 'S'}`;
@@ -684,14 +510,17 @@ function exerciseRow(ex, idx, category, libEx) {
       if (firstSet.weightLb != null) setsSummary += `  ·  ${firstSet.weightLb} LB`;
     }
   }
+  if (ex.notes) setsSummary = ex.notes.toUpperCase();
   if (ex.restBetweenSets) setsSummary += `  ·  REST ${ex.restBetweenSets}S`;
+  const alts = (ex.substituteIds || []).map((id) => exById?.get(id)?.name).filter(Boolean);
   const constraintFlag = libEx?.constraintFlags?.length > 0;
-  return el('div', { class: 'exercise-row' }, [
+  return el(libEx ? 'a' : 'div', { class: 'exercise-row' + (libEx ? ' exercise-row-link' : ''), href: libEx ? `#/exercise/${libEx.id}` : null }, [
     el('div', { class: 'exercise-num', text: idx + 1 }),
     catBadge(libEx || category),
     el('div', { class: 'exercise-main' }, [
       el('div', { class: 'exercise-name', text: ex.exerciseName || libEx?.name || '(deleted)' }),
       el('div', { class: 'exercise-meta', text: setsSummary }),
+      alts.length ? el('div', { class: 'exercise-alts', text: `Alternatives: ${alts.join(' · ')}` }) : null,
     ]),
     constraintFlag ? el('div', { class: 'exercise-flag', text: '⚑' }) : null,
   ]);
@@ -724,7 +553,7 @@ export async function renderLibrary(container) {
   container.appendChild(section('SEARCH', searchInput));
 
   const filterRow = el('div', { class: 'filter-row' });
-  const catChips = [{ id: 'all', label: 'ALL' }, ...CATEGORIES.map((c) => ({ id: c, label: c.toUpperCase() }))];
+  const catChips = [{ id: 'all', label: 'ALL' }, ...CATEGORIES.map((c) => ({ id: c, label: CAT_LABEL[c] }))];
   const chipEls = new Map();
   for (const c of catChips) {
     const chip = el('button', { class: 'filter-chip' + (c.id === 'all' ? ' filter-chip-active' : ''), text: c.label });
@@ -751,7 +580,7 @@ export async function renderLibrary(container) {
 
   container.appendChild(section('ADD', el('div', { class: 'action-stack' }, [
     el('button', { class: 'btn btn-primary', onclick: async () => {
-      const { openExercisePicker } = await import('./exercise-picker.js?v=24');
+      const { openExercisePicker } = await import('./exercise-picker.js?v=27');
       openExercisePicker('ADD FROM CATALOG', (ex) => { window.location.hash = `#/exercise/${ex.id}`; }, { startTab: 'catalog' });
     } }, [
       el('span', { class: 'btn-title', text: '+ ADD FROM CATALOG' }),
@@ -769,10 +598,16 @@ export async function renderLibrary(container) {
     if (searchQuery) filtered = filtered.filter((e) => (e.name || '').toLowerCase().includes(searchQuery));
     if (ptSafeOnly) filtered = filtered.filter((e) => !(e.constraintFlags && e.constraintFlags.length > 0));
     filtered = [...filtered].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    listCounter.textContent = `SHOWING ${filtered.length} OF ${allExercises.length}`;
+    listCounter.textContent = `SHOWING ${filtered.length} OF ${allExercises.length}  ·  By category, A to Z`;
     list.innerHTML = '';
     if (filtered.length === 0) { list.appendChild(el('div', { class: 'empty-note', text: 'NO EXERCISES MATCH THESE FILTERS' })); return; }
-    for (const ex of filtered) list.appendChild(libraryRow(ex, usage.get(ex.id) || 0));
+    const groups = [...CATEGORIES, 'other'];
+    for (const g of groups) {
+      const inGroup = filtered.filter((e) => (CATEGORIES.includes(e.category) ? e.category : 'other') === g);
+      if (inGroup.length === 0) continue;
+      list.appendChild(el('div', { class: 'library-group-head' }, [catBadge(g), el('span', { text: `${inGroup.length} EXERCISE${inGroup.length === 1 ? '' : 'S'}` })]));
+      for (const ex of inGroup) list.appendChild(libraryRow(ex, usage.get(ex.id) || 0));
+    }
   }
   updateList();
 }
@@ -811,7 +646,7 @@ async function renderExerciseDetail(container, ex) {
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
       el('a', { href: '#/library', class: 'crumb', text: '‹ LIBRARY' }),
-      el('span', { text: `  ·  ${(ex.category || 'strength').toUpperCase()}` }),
+      el('span', { text: `  ·  ${CAT_LABEL[ex.category] || 'OTHER'}` }),
       uses.length > 0 ? el('span', { text: `  ·  IN ${uses.length} ROUTINE${uses.length === 1 ? '' : 'S'}` }) : null,
     ]),
     el('h1', { text: ex.name }),
@@ -825,17 +660,42 @@ async function renderExerciseDetail(container, ex) {
       : el('span', { class: 'tag tag-safe', text: '◉ PT SAFE' }),
   ]));
 
+  const guide = await guideFor(ex);
+  if (guide && guide.img && guide.img.length) {
+    container.appendChild(section('HOW IT LOOKS', el('div', { class: 'guide-photos' }, guide.img.map((src, i) =>
+      el('figure', { class: 'guide-photo' }, [
+        el('img', { src, alt: `${ex.name} ${i === 0 ? 'start' : 'finish'} position`, loading: 'lazy' }),
+        el('figcaption', { text: i === 0 ? 'START' : 'FINISH' }),
+      ])))));
+  }
+  const steps = (guide && guide.ins && guide.ins.length) ? guide.ins : (ex.instructions || []);
+  if (steps.length) container.appendChild(section('HOW TO DO IT', el('ol', { class: 'howto-list' }, steps.map((t) => el('li', { text: t })))));
+  if (!guide || !guide.img || !guide.img.length) {
+    container.appendChild(el('div', { class: 'guide-nophoto', text: 'NO PHOTO IN THE EXERCISE DATABASE FOR THIS ONE' }));
+  }
+  const targets = await targetsForExercise(ex.id);
+  if (targets.length) {
+    container.appendChild(section('YOUR TARGET', el('div', { class: 'settings-list' }, targets.map((t) =>
+      metaRow(t.phase, t.target + (t.note ? `  ·  ${t.note.toUpperCase()}` : ''))))));
+  }
+  const allEx = await db.getAll('exercises');
+  const alts = (ex.substituteIds || []).map((id) => allEx.find((e) => e.id === id)).filter(Boolean);
+  if (alts.length) {
+    container.appendChild(section('MACHINE TAKEN? ALTERNATIVES', el('div', {}, alts.map((a) =>
+      el('a', { class: 'nav-row', href: `#/exercise/${a.id}` }, [
+        el('div', { class: 'nav-row-main' }, [ el('div', { class: 'nav-row-title', text: a.name }), el('div', { class: 'nav-row-sub', text: (a.equipment || 'BODYWEIGHT').toUpperCase() }) ]),
+        el('div', { class: 'nav-row-arrow', text: '›' }),
+      ])))));
+  }
+
   const metaCard = el('div', { class: 'settings-list' });
-  metaCard.appendChild(metaRow('CATEGORY', (ex.category || 'strength').toUpperCase()));
+  metaCard.appendChild(metaRow('CATEGORY', CAT_LABEL[ex.category] || 'OTHER'));
   metaCard.appendChild(metaRow('EQUIPMENT', (ex.equipment || 'BODYWEIGHT').toUpperCase()));
   metaCard.appendChild(metaRow('PRIMARY MUSCLES', (ex.primaryMuscles || []).join(', ') || '—'));
   metaCard.appendChild(metaRow('SECONDARY MUSCLES', (ex.secondaryMuscles || []).join(', ') || '—'));
   container.appendChild(section('METADATA', metaCard));
 
   if (ex.notes && ex.notes.trim()) container.appendChild(section('NOTES', el('div', { class: 'note-block', text: ex.notes })));
-  if (ex.instructions && ex.instructions.length > 0) {
-    container.appendChild(section('HOW TO', el('ol', { class: 'howto-list' }, ex.instructions.map((t) => el('li', { text: t })))));
-  }
   container.appendChild(section('CONSTRAINT FLAGS', flagsEditor(ex)));
 
   if (uses.length > 0) {
@@ -932,7 +792,7 @@ function onDeleteExercise(ex, uses) {
 async function renderExerciseForm(container, existing) {
   const isEdit = !!existing;
   const model = isEdit ? { ...existing } : {
-    id: uid('cu'), name: '', category: 'strength',
+    id: uid('cu'), name: '', category: 'push',
     primaryMuscles: [], secondaryMuscles: [], equipment: '', isCustom: true,
     notes: '', substituteIds: [], constraintFlags: [], createdAt: new Date().toISOString(),
   };
@@ -947,17 +807,7 @@ async function renderExerciseForm(container, existing) {
 
   const form = el('div', { class: 'form-stack' });
   form.appendChild(formField('NAME', 'text', 'name', model.name, 'e.g. Cable Row (Neutral Grip)'));
-  form.appendChild(formSelect('CATEGORY', 'category', model.category, CATEGORIES.map((c) => ({ value: c, label: c.toUpperCase() }))));
-  form.appendChild(formSelect('FOCUS (BADGE COLOR)', 'focus', model.focus || 'other', [
-    { value: 'legs',     label: 'LEG · GREEN' },
-    { value: 'core',     label: 'COR · YELLOW' },
-    { value: 'push',     label: 'PSH · RED' },
-    { value: 'pull',     label: 'PUL · BLUE' },
-    { value: 'cardio',   label: 'CAR · CYAN' },
-    { value: 'rehab',    label: 'REH · PURPLE' },
-    { value: 'mobility', label: 'MOB · GRAY' },
-    { value: 'other',    label: 'OTH · DARK GRAY' },
-  ]));
+  form.appendChild(formSelect('CATEGORY', 'category', CATEGORIES.includes(model.category) ? model.category : 'push', CATEGORIES.map((c) => ({ value: c, label: CAT_LABEL[c] }))));
   form.appendChild(formField('EQUIPMENT', 'text', 'equipment', model.equipment, 'e.g. Cable Machine, Dumbbell, Bodyweight'));
   form.appendChild(formField('PRIMARY MUSCLES', 'text', 'primaryMuscles', (model.primaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
   form.appendChild(formField('SECONDARY MUSCLES', 'text', 'secondaryMuscles', (model.secondaryMuscles || []).join(', '), 'COMMA-SEPARATED'));
@@ -970,13 +820,13 @@ async function renderExerciseForm(container, existing) {
     el('span', { class: 'btn-sub', text: isEdit ? 'UPDATE THIS EXERCISE' : 'ADDS TO YOUR LIBRARY' }),
   ]);
   saveBtn.addEventListener('click', async () => {
-    const newFocus = form.querySelector('[name="focus"]').value;
+    const cat = form.querySelector('[name="category"]').value;
     const updated = {
       ...model,
       name: form.querySelector('[name="name"]').value.trim(),
-      category: form.querySelector('[name="category"]').value,
-      focus: newFocus,
-      focusEditedByUser: newFocus !== (model.focus || null) ? true : (model.focusEditedByUser || false),
+      category: cat,
+      focus: cat,
+      focusEditedByUser: true,
       equipment: form.querySelector('[name="equipment"]').value.trim(),
       primaryMuscles: form.querySelector('[name="primaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
       secondaryMuscles: form.querySelector('[name="secondaryMuscles"]').value.split(',').map((s) => s.trim()).filter(Boolean),
@@ -997,7 +847,7 @@ async function renderExerciseForm(container, existing) {
 
 // ---------- STATS delegates ----------
 export async function renderStats(container, params) {
-  const { renderStatsPage } = await import('./stats.js?v=24');
+  const { renderStatsPage } = await import('./stats.js?v=27');
   return renderStatsPage(container, params);
 }
 
@@ -1007,27 +857,15 @@ export async function renderMe(container) {
     db.count('exercises'), db.count('routines'), db.count('sessions'),
     db.count('bodyMeasurements'), db.count('dailyActivity'), db.count('goals'),
   ]);
-  const meta = await db.get('meta', 'lastImport');
-  const lastImportDate = meta?.value?.importedAt ? new Date(meta.value.importedAt) : null;
 
-  container.appendChild(el('section', { class: 'hero' }, [
-    el('div', { class: 'eyebrow', text: 'ME  ·  DATA  ·  SETTINGS' }),
-    el('h1', { text: 'YOUR VAULT' }),
-    el('p', { class: 'hero-sub', text: 'Everything below lives on this device. Nothing syncs. Back it up regularly.' }),
-    el('p', { class: 'hero-meta', text: lastImportDate ? `LAST IMPORT · ${Math.floor((Date.now() - lastImportDate.getTime()) / 86400000)}D AGO` : 'NO IMPORT YET' }),
-  ]));
-
-  const links = el('div', { class: 'action-stack' }, [
-    navRow('BODY METRICS', 'LOG WEIGHT + MEASUREMENTS', '#/body'),
-    navRow('GOALS', 'INCA TRAIL · WEIGHT · PUSH-UPS · CLEARANCE', '#/goals'),
-    navRow('SETTINGS', 'TRAIL · CALIBRATION · PAUSE · UNITS · BACKUP', '#/settings'),
-  ]);
-  container.appendChild(section('QUICK ACCESS', links));
+  // Settings (profile, units, targets, trail, training, app), then data.
+  const { renderSettings } = await import('./settings.js?v=27');
+  await renderSettings(container);
 
   const grid = el('div', { class: 'stat-grid' });
   const cards = [
     { store: 'exercises', label: 'EXERCISES', value: exCount, sub: 'IN LIBRARY', highlight: true },
-    { store: 'routines', label: 'ROUTINES', value: rtCount, sub: 'ALL PROGRAMS' },
+    { store: 'routines', label: 'ROUTINES', value: rtCount, sub: 'IN YOUR PLAN' },
     { store: 'bodyMeasurements', label: 'MEASUREMENTS', value: bmCount, sub: 'BODY LOG' },
     { store: 'sessions', label: 'SESSIONS', value: sessCount, sub: 'WORKOUTS LOGGED' },
     { store: 'goals', label: 'GOALS', value: goalCount, sub: 'TRACKED' },
@@ -1042,7 +880,7 @@ export async function renderMe(container) {
     if (c.value > 0) { card.setAttribute('data-tappable', ''); card.addEventListener('click', () => openInspector(c.store, c.label)); }
     grid.appendChild(card);
   }
-  container.appendChild(section('DATA STATUS  ·  TAP A CARD TO INSPECT', grid));
+  container.appendChild(section('DATA  ·  STORED ON THIS DEVICE ONLY  ·  TAP A CARD TO INSPECT', grid));
 
   container.appendChild(section('BACKUP & RESTORE', el('div', { class: 'action-stack' }, [
     btnCard('EXPORT BACKUP', 'DOWNLOAD JSON · SAVE TO DRIVE / iCLOUD', 'primary', onExport),
@@ -1050,7 +888,6 @@ export async function renderMe(container) {
   ])));
   container.appendChild(section('ADVANCED', el('div', { class: 'action-stack' }, [
     btnCard('CLEAR ALL DATA', 'WIPE THIS DEVICE · IRREVERSIBLE', 'danger', onClearClick),
-    btnCard('RE-IMPORT BUNDLED HEVY DATA', "RESTORE FROM APP'S SEED FILE", 'outline', onReimportClick),
   ])));
 
   const est = await db.storageEstimate();
@@ -1061,7 +898,29 @@ export async function renderMe(container) {
     const pct = ((est.usage / est.quota) * 100).toFixed(2);
     storageText = `${usedMb} MB USED  ·  ${quotaMb} MB AVAILABLE  ·  ${pct}%`;
   }
-  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `Storage: ${storageText}` }) ]));
+  container.appendChild(el('section', { class: 'section footer-note' }, [ el('p', { text: `FORGE v1.0.2  ·  Storage: ${storageText}` }) ]));
+}
+
+// ---------- PROGRESS: history · charts · body · goals ----------
+const PROGRESS_SEGS = [['history', 'HISTORY'], ['charts', 'CHARTS'], ['body', 'BODY'], ['goals', 'GOALS']];
+export async function renderProgress(container, params) {
+  const seg = PROGRESS_SEGS.some(([k]) => k === (params && params[0])) ? params[0] : 'history';
+  container.appendChild(el('section', { class: 'hero' }, [
+    el('div', { class: 'eyebrow', text: 'HISTORY  ·  CHARTS  ·  BODY  ·  GOALS' }),
+    el('h1', { text: 'PROGRESS' }),
+  ]));
+  container.appendChild(el('section', { class: 'section' }, [el('div', { class: 'seg-bar' },
+    PROGRESS_SEGS.map(([k, label]) => el('a', { class: 'seg' + (k === seg ? ' seg-on' : ''), href: `#/progress/${k}`, text: label })))]));
+  const inner = el('div', {});
+  if (seg === 'history') { const m = await import('./history.js?v=27'); await m.renderHistory(inner); }
+  else if (seg === 'charts') { const m = await import('./stats.js?v=27'); await m.renderStatsPage(inner, [], { embedded: true, skipBody: true }); }
+  else if (seg === 'body') {
+    const [{ renderBody }, { renderBodyMeasurementCharts }] = await Promise.all([import('./body.js?v=27'), import('./stats.js?v=27')]);
+    inner.appendChild(await renderBodyMeasurementCharts(await db.getAll('bodyMeasurements')));
+    await renderBody(inner, []);
+  } else { const m = await import('./goals.js?v=27'); await m.renderGoals(inner, []); }
+  inner.querySelectorAll(':scope > section.hero').forEach((h) => h.remove());
+  container.append(...inner.childNodes);
 }
 
 function navRow(title, sub, href) {
@@ -1089,17 +948,7 @@ function onClearClick() {
     catch (err) { console.error(err); toast('CLEAR FAILED · ' + err.message, 'error'); }
   });
 }
-function onReimportClick() {
-  confirmModal('RE-IMPORT BUNDLED HEVY DATA?', "Wipes current data and reloads the app's bundled Hevy seed file.", async () => {
-    try {
-      await db.clearAll();
-      const summary = await importBundledHevyBackup();
-      toast(`REIMPORTED  ·  ${summary.exercises} EX  ·  ${summary.routines} ROUTINES  ·  ${summary.goals} GOALS`, 'ok', 3500);
-      refresh();
-    } catch (err) { console.error(err); toast('RE-IMPORT FAILED · ' + err.message, 'error'); }
-  });
-}
-async function refresh() { const m = await import('./app.js?v=24'); m.refresh && m.refresh(); }
+async function refresh() { const m = await import('./app.js?v=27'); m.refresh && m.refresh(); }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('file-input')?.addEventListener('change', async (e) => {

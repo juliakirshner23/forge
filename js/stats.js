@@ -1,7 +1,7 @@
 // FORGE stats: weight trend + exercise progression + PRs + analytics (v0.6.0)
-import * as db from './db.js?v=24';
-import { el, section, formatDate } from './ui.js?v=24';
-import { est1RM, strengthFocusShare, volumeTrend } from './progression.js?v=24';
+import * as db from './db.js?v=27';
+import { el, section, formatDate, localDay } from './ui.js?v=27';
+import { est1RM, strengthFocusShare, volumeTrend } from './progression.js?v=27';
 
 const RANGES = [
   { label: '30D', days: 30 },
@@ -10,13 +10,13 @@ const RANGES = [
   { label: 'ALL', days: null },
 ];
 
-export async function renderStatsPage(container, params) {
+export async function renderStatsPage(container, params, opts = {}) {
   const [measurements, sessions, exercises, routines] = await Promise.all([
     db.getAll('bodyMeasurements'), db.getAll('sessions'), db.getAll('exercises'), db.getAll('routines'),
   ]);
   const completedSessions = sessions.filter((s) => !s.isActive && s.completedAt);
 
-  container.appendChild(el('section', { class: 'hero' }, [
+  if (!opts.embedded) container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow', text: `STATS  ·  ${completedSessions.length} SESSIONS  ·  ${measurements.length} MEASUREMENTS` }),
     el('h1', { text: 'PROGRESS' }),
   ]));
@@ -29,7 +29,7 @@ export async function renderStatsPage(container, params) {
   }
 
   // Body Measurements: individual chart per measurement, with range chips
-  container.appendChild(await renderBodyMeasurementCharts(measurements));
+  if (!opts.skipBody) container.appendChild(await renderBodyMeasurementCharts(measurements));
 
   // Exercise progression
   const exWithHistory = collectExerciseHistory(completedSessions, exercises);
@@ -134,7 +134,7 @@ function collectExerciseHistory(sessions, exercises) {
         id: ex.exerciseId, name: ex.exerciseName,
         unit: isCardio ? 'MIN' : 'LB', data: [],
       });
-      map.get(ex.exerciseId).data.push({ date: (s.completedAt || '').slice(0, 10), value: Math.round(maxVal * 10) / 10 });
+      map.get(ex.exerciseId).data.push({ date: s.completedAt ? localDay(s.completedAt) : '', value: Math.round(maxVal * 10) / 10 });
       // Track latest reps + weight for 1RM
       if (!isCardio) {
         const topSet = doneSets.reduce((a, b) => (b.actualWeightLb || 0) > (a.actualWeightLb || 0) ? b : a, doneSets[0]);
@@ -149,7 +149,7 @@ function collectExerciseHistory(sessions, exercises) {
   return result;
 }
 
-async function renderBodyMeasurementCharts(measurements) {
+export async function renderBodyMeasurementCharts(measurements) {
   const wrap = el('div', {});
   if (measurements.length < 2) {
     wrap.appendChild(el('div', { class: 'empty-note', text: 'NEED AT LEAST 2 MEASUREMENT ENTRIES' }));
@@ -223,7 +223,7 @@ async function renderBodyMeasurementCharts(measurements) {
 
 function renderFocusBars(rows) {
   const wrap = el('div', { class: 'muscle-bars' });
-  const colors = { push: 'var(--red)', pull: 'var(--blue-hi)', legs: 'var(--green)', core: 'var(--amber)' };
+  const colors = { push: '#993C1D', pull: '#185FA5', legs: '#3B6D11', core: '#534AB7' };
   const labels = { push: 'PUSH', pull: 'PULL', legs: 'LEGS', core: 'CORE' };
   const max = Math.max(...rows.map((r) => r.pct), 1);
   for (const r of rows) {
@@ -244,9 +244,9 @@ function weeklyVolumeCards(sessions) {
   const dow = now.getDay();
   const daysSinceMon = (dow + 6) % 7;
   const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMon);
-  const monIso = mon.toISOString().slice(0, 10);
+  const monIso = localDay(mon);
 
-  const thisWeek = sessions.filter((s) => s.completedAt && s.completedAt.slice(0, 10) >= monIso);
+  const thisWeek = sessions.filter((s) => s.completedAt && localDay(s.completedAt) >= monIso);
   const totalSets = thisWeek.reduce((n, s) => n + (s.exercises || []).reduce((m, ex) => m + (ex.sets || []).filter((st) => st.done).length, 0), 0);
   const totalMin = thisWeek.reduce((n, s) => {
     if (!s.completedAt || !s.startedAt) return n;
@@ -330,7 +330,7 @@ async function renderCalorieTrendSection() {
     { m: 'elliptical', met: 5.0 }, { m: 'walk', met: 3.8 },
     { m: 'run', met: 9.0 }, { m: 'row', met: 7.0 },
   ];
-  const MET_BY_CATEGORY = { strength: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
+  const MET_BY_CATEGORY = { strength: 5.0, push: 5.0, pull: 5.0, legs: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
   const KG_PER_LB = 0.453592;
   const kg = bodyLb * KG_PER_LB;
   function metFor(libEx) {
@@ -362,7 +362,7 @@ async function renderCalorieTrendSection() {
   function shiftDate(iso, delta) {
     const d = new Date(iso + 'T00:00:00');
     d.setDate(d.getDate() + delta);
-    return d.toISOString().slice(0, 10);
+    return localDay(d);
   }
   function todayIsoLocal() {
     const d = new Date();
@@ -377,7 +377,7 @@ async function renderCalorieTrendSection() {
     const sessionsByDate = new Map();
     for (const s of sessions) {
       if (s.isActive || !s.completedAt) continue;
-      const d = s.completedAt.slice(0, 10);
+      const d = localDay(s.completedAt);
       if (!sessionsByDate.has(d)) sessionsByDate.set(d, []);
       sessionsByDate.get(d).push(s);
     }
@@ -408,7 +408,7 @@ async function renderCalorieTrendSection() {
   wrap.appendChild(rangeRow);
   wrap.appendChild(chartWrap);
   draw();
-  return section('CALORIE TREND · FOOD / EXERCISE / NET', wrap);
+  return section('CALORIE TREND · FOOD / WORKOUT / NET', wrap);
 }
 
 function renderTripleLine(rows) {
@@ -444,7 +444,7 @@ function renderTripleLine(rows) {
     ${line(exPts, '#a3a3a3', true)}
     ${line(netPts, '#fafafa', false)}
     <text x="${padL}" y="${padT - 8}" fill="#f59e0b" font-size="9" font-weight="900" font-family="monospace">■ FOOD</text>
-    <text x="${padL + 66}" y="${padT - 8}" fill="#a3a3a3" font-size="9" font-weight="900" font-family="monospace">■ EXERCISE</text>
+    <text x="${padL + 66}" y="${padT - 8}" fill="#a3a3a3" font-size="9" font-weight="900" font-family="monospace">■ WORKOUT</text>
     <text x="${padL + 152}" y="${padT - 8}" fill="#fafafa" font-size="9" font-weight="900" font-family="monospace">■ NET</text>
     <text x="${padL}" y="${h - 8}" fill="#57534e" font-size="9" font-family="monospace">${rows[0].date}</text>
     <text x="${w - padR}" y="${h - 8}" fill="#57534e" font-size="9" text-anchor="end" font-family="monospace">${rows[rows.length - 1].date}</text>
@@ -453,6 +453,6 @@ function renderTripleLine(rows) {
   wrap.className = 'chart-wrap';
   wrap.innerHTML = svg;
   const last = rows[rows.length - 1];
-  wrap.appendChild(el('div', { class: 'chart-caption', text: `TODAY · FOOD ${last.food} · EX ${last.exercise} · NET ${last.net}` }));
+  wrap.appendChild(el('div', { class: 'chart-caption', text: `TODAY · FOOD ${last.food} · WORKOUT ${last.exercise} · NET ${last.net}` }));
   return wrap;
 }

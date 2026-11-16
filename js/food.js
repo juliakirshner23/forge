@@ -6,11 +6,11 @@
 // MET × body weight × duration; can be manually overridden.
 // =========================================================
 
-import * as db from './db.js?v=24';
+import * as db from './db.js?v=27';
 import {
   el, section, formField, formSelect,
   toast, confirmModal, uid, esc, todayIso, formatDate, progressBar, progressColor,
-} from './ui.js?v=24';
+} from './ui.js?v=27';
 
 // ---------- Constants ----------
 
@@ -23,13 +23,7 @@ const MEALS = [
 
 // MET (metabolic equivalent) defaults per exercise category.
 // Formula: kcal = MET × body_weight_kg × duration_hours
-const MET_BY_CATEGORY = {
-  strength: 5.0,
-  cardio:   6.5,
-  core:     3.5,
-  mobility: 2.5,
-  rehab:    3.0,
-};
+const MET_BY_CATEGORY = { strength: 5.0, push: 5.0, pull: 5.0, legs: 5.0, cardio: 6.5, core: 3.5, mobility: 2.5, rehab: 3.0 };
 // Per-exercise override by name substring (case-insensitive).
 // Checked first; falls back to category MET.
 const MET_BY_NAME_HINT = [
@@ -88,7 +82,12 @@ function estimateSessionKcal(session, exerciseIndex, bodyWeightLb) {
   return Math.round(avgMet * kg * durHours);
 }
 
-async function latestBodyWeightLb() {
+function localDayOf(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export async function latestBodyWeightLb() {
   const measurements = await db.getAll('bodyMeasurements');
   const withWeight = measurements.filter((m) => m.weight != null);
   if (withWeight.length === 0) return 160; // sensible fallback if no measurements
@@ -96,20 +95,20 @@ async function latestBodyWeightLb() {
   return withWeight[0].weight;
 }
 
-async function exerciseKcalForDate(dateIso, exerciseIndex, bodyWeightLb) {
+export async function exerciseKcalForDate(dateIso, exerciseIndex, bodyWeightLb) {
   // Check manual override first
   const override = await db.get('dailyCalorieAdjustments', dateIso);
   if (override && override.exerciseCaloriesOverride != null) {
     return { kcal: override.exerciseCaloriesOverride, isOverride: true };
   }
   const sessions = await db.getAll('sessions');
-  const daySessions = sessions.filter((s) => !s.isActive && s.completedAt && s.completedAt.slice(0, 10) === dateIso);
+  const daySessions = sessions.filter((s) => !s.isActive && s.completedAt && localDayOf(s.completedAt) === dateIso);
   let total = 0;
   for (const s of daySessions) total += estimateSessionKcal(s, exerciseIndex, bodyWeightLb);
   return { kcal: total, isOverride: false };
 }
 
-async function foodKcalForDate(dateIso) {
+export async function foodKcalForDate(dateIso) {
   const meals = await db.getAll('mealLog');
   return meals.filter((m) => m.date === dateIso).reduce((sum, m) => sum + (m.calories || 0), 0);
 }
@@ -153,12 +152,17 @@ export async function renderFoodDay(container, params) {
         ? el('a', { class: 'food-date-arrow', href: `#/food-day/${nextDate}`, text: '›' })
         : el('span', { class: 'food-date-arrow food-date-arrow-disabled', text: '›' }),
     ]),
+    (() => {
+      const pick = el('input', { class: 'form-input food-date-pick', type: 'date', value: dateIso, max: todayIso(), 'aria-label': 'Pick a date' });
+      pick.addEventListener('change', () => { if (pick.value) window.location.hash = `#/food-day/${pick.value}`; });
+      return el('label', { class: 'food-date-pick-wrap' }, [el('span', { class: 'form-label', text: 'GO TO DATE' }), pick]);
+    })(),
   ]));
 
   // Top numbers: Food In / Exercise Out / Net
   container.appendChild(section(null, el('div', { class: 'food-summary' }, [
-    foodTile('FOOD IN', foodKcal, 'KCAL', 'var(--amber)'),
-    foodTile('EXERCISE OUT', exKcal, isOverride ? 'KCAL · MANUAL' : 'KCAL · AUTO', 'var(--body)'),
+    foodTile('FOOD', foodKcal, 'KCAL', 'var(--amber)'),
+    foodTile('WORKOUT', exKcal, isOverride ? 'KCAL · MANUAL' : 'KCAL · AUTO', 'var(--body)'),
     foodTile('NET', net, 'KCAL', net <= netGoal ? 'var(--green)' : 'var(--red)'),
   ])));
 
@@ -169,8 +173,8 @@ export async function renderFoodDay(container, params) {
   const foodPct = budget > 0 ? (foodKcal / budget) * 100 : 0;
   const netPct = netGoal > 0 ? (net / netGoal) * 100 : 0;
   container.appendChild(section('TARGETS', el('div', { class: 'form-stack' }, [
-    progressBar(foodPct, { label: `FOOD IN vs BUDGET (${budget})`, value: `${foodKcal} / ${budget}` }),
-    progressBar(netPct, { label: `NET vs GOAL (${netGoal})`, value: `${net} / ${netGoal}` }),
+    progressBar(foodPct, { label: `Food vs budget (${budget})`, value: `${foodKcal} / ${budget}` }),
+    progressBar(netPct, { label: `Net vs goal (${netGoal})`, value: `${net} / ${netGoal}` }),
   ])));
 
   // Meal sections
@@ -183,7 +187,7 @@ export async function renderFoodDay(container, params) {
   container.appendChild(section('MEALS', mealsWrap));
 
   // Exercise override
-  container.appendChild(section('EXERCISE CALORIES', renderExerciseAdjuster(dateIso, exKcal, isOverride)));
+  container.appendChild(section('WORKOUT CALORIES', renderExerciseAdjuster(dateIso, exKcal, isOverride)));
 
   // Manage foods link
   container.appendChild(section('LIBRARY', el('div', { class: 'action-stack' }, [
@@ -394,7 +398,7 @@ function renderExerciseAdjuster(dateIso, currentKcal, isOverride) {
     placeholder: 'KCAL', value: isOverride ? String(currentKcal) : '',
   });
   wrap.appendChild(el('label', { class: 'form-field' }, [
-    el('span', { class: 'form-label', text: 'OVERRIDE EXERCISE CALORIES' }),
+    el('span', { class: 'form-label', text: 'OVERRIDE WORKOUT CALORIES' }),
     input,
   ]));
 
@@ -600,7 +604,7 @@ async function buildDailySeries(nDays, exerciseIndex, bodyWeightLb) {
   const sessionsByDate = new Map();
   for (const s of sessions) {
     if (s.isActive || !s.completedAt) continue;
-    const d = s.completedAt.slice(0, 10);
+    const d = localDayOf(s.completedAt);
     if (!sessionsByDate.has(d)) sessionsByDate.set(d, []);
     sessionsByDate.get(d).push(s);
   }
@@ -684,7 +688,7 @@ function renderTripleLineChart(rows) {
 function shiftDate(iso, deltaDays) {
   const d = new Date(iso + 'T00:00:00');
   d.setDate(d.getDate() + deltaDays);
-  return d.toISOString().slice(0, 10);
+  return localDayOf(d);
 }
 
 function prettyDate(iso) {
@@ -695,6 +699,6 @@ function prettyDate(iso) {
 // ---------- Refresh helper ----------
 
 async function refresh() {
-  const m = await import('./app.js?v=24');
+  const m = await import('./app.js?v=27');
   m.refresh && m.refresh();
 }

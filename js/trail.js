@@ -18,7 +18,8 @@
 //    scheduled day costs 20 points and resets the streak. Distance is never lost.
 //  - Pause: paused days earn nothing and cost nothing; streak and totals are held.
 //  - Daily steps never move you along the trail.
-import * as db from './db.js?v=24';
+import * as db from './db.js?v=27';
+import { isScheduledOn } from './program.js?v=27';
 
 export const KM_PER_MI = 1.609344;
 export const FT_PER_M = 3.28084;
@@ -147,8 +148,7 @@ export function streakMultiplier(streak) {
 }
 
 // Walk every day from the start date to today and total everything up.
-export function evaluate({ startDate, today, sessions, routines, meals, activity, pauses, ledger, stepBonus }) {
-  const scheduledDays = new Set((routines || []).filter((r) => r.isActive !== false && r.scheduledDay).map((r) => r.scheduledDay));
+export function evaluate({ startDate, today, sessions, routines, meals, activity, pauses, ledger, stepBonus, legacySchedule }) {
   const byDay = new Map();
   for (const s of sessions || []) {
     if (s.isActive || !s.completedAt) continue;
@@ -181,7 +181,8 @@ export function evaluate({ startDate, today, sessions, routines, meals, activity
         const c = ledger?.[s.id];
         if (c) { distKm += c.distKm || 0; climbM += c.climbM || 0; }
       }
-    } else if (d < today && scheduledDays.has(dayKeyOf(d))) {
+    } else if (d < today && ((legacySchedule && d < legacySchedule.until && (legacySchedule.days || []).includes(dayKeyOf(d)))
+      || (routines || []).some((r) => isScheduledOn(r, d)))) {
       points = Math.max(0, points - SKIP_PENALTY);
       streak = 0;
     }
@@ -246,7 +247,8 @@ export async function getStatus() {
     if (changed) await db.put('meta', { key: 'trailLedger', value: ledger });
   }
   const today = localIso(new Date());
-  const ev = evaluate({ startDate: cfg.startDate, today, sessions, routines, meals, activity, pauses: cfg.pauses, ledger, stepBonus: cfg.stepBonus });
+  const legacySchedule = await db.getSetting('legacySchedule', null);
+  const ev = evaluate({ startDate: cfg.startDate, today, sessions, routines, meals, activity, pauses: cfg.pauses, ledger, stepBonus: cfg.stepBonus, legacySchedule });
 
   // Badges are stored once earned and never removed.
   const stored = (await db.get('meta', 'trailBadges'))?.value || {};

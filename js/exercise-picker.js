@@ -3,16 +3,16 @@
 // Two sources: YOUR LIBRARY (IndexedDB) and CATALOG (data/catalog.json,
 // public-domain free-exercise-db). Picking a catalog exercise copies it
 // into your library first. "+ CREATE CUSTOM" makes a new exercise inline.
-import * as db from './db.js?v=24';
-import { el, catBadge, toast, uid, CATEGORIES } from './ui.js?v=24';
-import { inferFocus, inferCardioMachine, inferConstraints } from './import.js?v=24';
+import * as db from './db.js?v=27';
+import { el, catBadge, toast, uid, CATEGORIES } from './ui.js?v=27';
+import { inferFocus, inferCardioMachine, inferConstraints } from './import.js?v=27';
 
 const MAX_ROWS = 150;
 let _catalog = null;
 
 export async function loadCatalog() {
   if (_catalog) return _catalog;
-  const res = await fetch('data/catalog.json?v=24');
+  const res = await fetch('data/catalog.json?v=27');
   if (!res.ok) throw new Error('Catalog not available');
   _catalog = await res.json();
   return _catalog;

@@ -1,7 +1,7 @@
 // FORGE settings editor
-import * as db from './db.js?v=24';
-import { el, section, formField, formSelect, toast, confirmModal } from './ui.js?v=24';
-import { DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS, STEP_THRESHOLD, setPaused, isPaused, localIso } from './trail.js?v=24';
+import * as db from './db.js?v=27';
+import { el, section, formField, formSelect, toast, confirmModal } from './ui.js?v=27';
+import { DEFAULT_CALIBRATION, DEFAULT_STEP_BONUS, STEP_THRESHOLD, setPaused, isPaused, localIso } from './trail.js?v=27';
 
 export async function renderSettings(container) {
   const [units, stride, stepGoal, prompts, backup, profile, constraints, calorieBudget, netCalorieGoal, theme] = await Promise.all([
@@ -18,10 +18,10 @@ export async function renderSettings(container) {
 
   container.appendChild(el('section', { class: 'hero' }, [
     el('div', { class: 'eyebrow' }, [
-      el('a', { href: '#/me', class: 'crumb', text: '‹ ME' }),
-      el('span', { text: '  ·  EDITABLE' }),
+      el('a', { href: '#/home', class: 'crumb', text: '‹ TODAY' }),
+      el('span', { text: '  ·  SETTINGS AND DATA' }),
     ]),
-    el('h1', { text: 'SETTINGS' }),
+    el('h1', { text: 'ME' }),
   ]));
 
   // v0.9.0 · Trail: heart rate calibration, step bonus, Stairmaster step height
@@ -76,7 +76,7 @@ export async function renderSettings(container) {
   pauseBtn.addEventListener('click', () => {
     confirmModal(pausedNow ? 'RESUME TRAIL?' : 'PAUSE TRAIL?',
       pausedNow ? 'Progress counting restarts today.' : 'Nothing counts and nothing is lost until you resume. Workouts logged while paused earn no trail credit.',
-      async () => { await setPaused(!pausedNow); toast(pausedNow ? 'TRAIL RESUMED' : 'TRAIL PAUSED', 'ok'); const m = await import('./app.js?v=24'); m.refresh && m.refresh(); });
+      async () => { await setPaused(!pausedNow); toast(pausedNow ? 'TRAIL RESUMED' : 'TRAIL PAUSED', 'ok'); const m = await import('./app.js?v=27'); m.refresh && m.refresh(); });
   });
   container.appendChild(section('TRAIL · PAUSE', pauseBtn));
 
@@ -190,4 +190,13 @@ export async function renderSettings(container) {
     } catch (err) { console.error(err); toast('SAVE FAILED · ' + err.message, 'error'); }
   });
   container.appendChild(section('SAVE', el('div', { class: 'action-stack' }, [saveBtn])));
+
+  // v1.0.0 · Group in a logical order: profile, targets, trail, training, app.
+  const ORDER = ['PROFILE', 'UNITS', 'ACTIVITY', 'CALORIES', 'TRAIL · CLIMB CALIBRATION', 'TRAIL · PAUSE', 'CONSTRAINTS', 'PREFERENCES', 'APPEARANCE', 'NOTIFICATIONS', 'SAVE'];
+  const secs = [...container.children].filter((n) => n.matches && n.matches('section.section'));
+  const label = (n) => (n.querySelector(':scope > .section-label')?.textContent || '').trim().toUpperCase();
+  secs.sort((a, b) => ORDER.indexOf(label(a)) - ORDER.indexOf(label(b)));
+  for (const n of secs) container.appendChild(n);
+  // Light theme only now; the appearance switch is gone.
+  secs.filter((n) => label(n) === 'APPEARANCE').forEach((n) => n.remove());
 }
